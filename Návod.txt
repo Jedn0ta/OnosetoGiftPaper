@@ -1,0 +1,49 @@
+﻿ONOSETO
+Editor souvislých vzorů na balicí papír
+
+SPUŠTĚNÍ
+  Dvojklik na „Spustit Onoseto“.
+  Aplikace se otevře jako samostatné okno (přes Microsoft Edge).
+  Nic se neinstaluje a funguje i bez internetu.
+
+  Chcete ikonu na ploše a v nabídce Start? Spusťte jednou
+  „Vytvořit zástupce na ploše“.
+
+SLOŽKY
+  Projekty        – rozpracované vzory (soubory .json), otevřete je
+                    v aplikaci tlačítkem Otevřít.
+  Hotové papíry   – exporty pro tisk (PDF a PNG).
+  aplikace        – samotná aplikace, neměňte.
+
+  Při prvním uložení se aplikace zeptá na složku. Vyberte PŘÍMO
+  složku „Onoseto“ – tu, kam jste aplikaci rozbalil a ve které jsou
+  složky aplikace, Hotové papíry, Projekty a tento Návod:
+    1. klikněte na „Vybrat složku…“,
+    2. najděte složku Onoseto (např. v Dokumentech nebo na ploše),
+    3. klikněte na ni jednou – nevstupujte do ní ani do Projektů,
+    4. potvrďte „Vybrat složku“ a povolte úpravy souborů.
+  Potom už aplikace ukládá rovnou do Projektů a Hotových papírů.
+  Při novém spuštění se prohlížeč může jednou zeptat na povolení
+  zápisu – stačí potvrdit (nebo zvolit „Povolit vždy“).
+
+JAK NA TO
+  1. Přidejte obrázky, text nebo tvary (kruh, elipsa, komiksové
+     bubliny a další) jako vrstvy.
+  2. Posouvejte je myší. Co přesáhne okraj dlaždice, objeví se
+     na protější straně – vzor proto navazuje do všech stran.
+  3. V záložce „Dlaždice“ nastavte velikost a pozadí.
+  4. „Náhled archu“ ukáže celý papír.
+  5. „Export a tisk“ uloží PDF se spadávkou, ořezovými
+     a pasovacími značkami, nebo PNG – a tlačítkem „Vytisknout…“
+     pošle vzor rovnou na tiskárnu (v dialogu tiskárny zvolte
+     papír podle formátu archu a měřítko 100 %).
+
+  Rozpracovaný vzor se průběžně zálohuje uvnitř aplikace a po novém
+  spuštění se obnoví. Tato záloha nikdy nepřepisuje vaše soubory
+  ve složce Projekty – ty se mění jen tlačítkem Uložit (Ctrl+S). Klávesové zkratky najdete v aplikaci pod Nápovědou (F1).
+
+TISK
+  PDF obsahuje čistý formát (TrimBox), spadávku (BleedBox) a značky
+  v registrační barvě. Obraz je v RGB – převod do CMYK provede tiskárna.
+  Pro profesionální tisk volte 300 DPI a spadávku 3 mm (nebo podle
+  požadavku tiskárny).
