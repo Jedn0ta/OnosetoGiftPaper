@@ -8,7 +8,7 @@ Editor souvislých vzorů na balicí papír pro Windows. Do dlaždice skládáte
 
 ## Spuštění
 
-1. Stáhněte repozitář: **Code → Download ZIP** a rozbalte ho kamkoli (třeba do Dokumentů).
+1. Stáhněte **[Onoseto (ZIP)](https://github.com/Jedn0ta/OnosetoGiftPaper/archive/refs/heads/main.zip)** a rozbalte ho kamkoli (třeba do Dokumentů).
 2. Dvojklik na **Spustit Onoseto** – aplikace se otevře jako samostatné okno (přes Microsoft Edge). Nic se neinstaluje a funguje i bez internetu.
 3. Ikonu na plochu a do nabídky Start přidá jednou spuštěný soubor **Vytvořit zástupce na ploše**.
 
@@ -36,6 +36,12 @@ Při prvním uložení se aplikace zeptá na složku. Vyberte **přímo složku,
 - projekty se ukládají do složky `Projekty`, rozpracovaná práce se navíc průběžně zálohuje uvnitř aplikace
 
 Klávesové zkratky najdete v aplikaci pod **Nápovědou (F1)**, podrobnější postup v souboru [Návod.txt](Návod.txt).
+
+## Aktualizace
+
+Nejnovější verzi stáhnete kdykoli tímto odkazem: **[Stáhnout Onoseto (ZIP)](https://github.com/Jedn0ta/OnosetoGiftPaper/archive/refs/heads/main.zip)**
+
+Aplikace sama hlídá, jestli je tu novější verze – v okně **O aplikaci** uvidíte svou verzi a případné upozornění. Při aktualizaci zkopírujte ze staženého ZIPu **jen složku `aplikace`** do své složky Onoseto, vaše `Projekty` a `Hotové papíry` tak zůstanou beze změny.
 
 ## Požadavky
 

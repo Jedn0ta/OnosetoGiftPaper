@@ -42,6 +42,14 @@ JAK NA TO
   spuštění se obnoví. Tato záloha nikdy nepřepisuje vaše soubory
   ve složce Projekty – ty se mění jen tlačítkem Uložit (Ctrl+S). Klávesové zkratky najdete v aplikaci pod Nápovědou (F1).
 
+AKTUALIZACE
+  V aplikaci klikněte na „O aplikaci“ – uvidíte verzi a jestli je
+  k dispozici novější. Novou verzi stáhnete odkazem
+  https://github.com/Jedn0ta/OnosetoGiftPaper/archive/refs/heads/main.zip
+  ZIP rozbalte a zkopírujte z něj jen složku „aplikace“ (u verze pro
+  e-mail soubor „Spustit Onoseto.html“) do své složky Onoseto.
+  Projekty a Hotové papíry tak zůstanou beze změny.
+
 TISK
   PDF obsahuje čistý formát (TrimBox), spadávku (BleedBox) a značky
   v registrační barvě. Obraz je v RGB – převod do CMYK provede tiskárna.
