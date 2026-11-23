@@ -177,6 +177,7 @@ kbd{font:600 12px "Segoe UI",sans-serif;border:1px solid var(--line);border-bott
  <div class="vbar">
   <div class="seg"><label><input type="radio" name="view" value="edit" checked>Úprava dlaždice</label><label><input type="radio" name="view" value="sheet">Náhled archu</label></div>
   <label class="chk" id="dimL"><input type="checkbox" id="dim" checked> Ztlumit okolí</label>
+  <span id="edTipL" hidden></span><span id="tileTip" hidden style="font-size:12.5px;color:var(--acc);font-weight:600">Táhněte okraj = velikost · klik na okraj = ta strana navrchu</span>
   <label class="chk"><input type="checkbox" id="grid"> Hranice dlaždic</label>
   <div class="zoom"><button id="zOut" title="Oddálit">−</button><span id="zoomTxt">100 %</span><button id="zIn" title="Přiblížit">+</button><button id="zFit" title="Přizpůsobit (Ctrl+0)">Přizpůsobit</button></div>
  </div>
@@ -248,7 +249,12 @@ kbd{font:600 12px "Segoe UI",sans-serif;border:1px solid var(--line);border-bott
  <div id="pTile" hidden>
   <details open><summary>Velikost dlaždice</summary><div class="body">
    <div class="xy">Rozměr <label>Š <input type="number" data-d="tw" min="2" max="200" step="0.5"></label><label>V <input type="number" data-d="th" min="2" max="200" step="0.5"></label></div>
-   <p class="note">V centimetrech. Dlaždice se na papíře opakuje do všech stran.</p>
+   <p class="note">V centimetrech. Velikost změníte také tažením okraje nebo rohu dlaždice v editoru (se Shiftem po 1 cm).</p>
+  </div></details>
+  <details open><summary>Překrývání na okrajích</summary><div class="body">
+   <div class="f w2">Vodorovně <select data-d="ov.h"><option value="none">Podle pořadí vrstev</option><option value="left">Zleva navrchu</option><option value="right">Zprava navrchu</option></select></div>
+   <div class="f w2">Svisle <select data-d="ov.v"><option value="none">Podle pořadí vrstev</option><option value="top">Shora navrchu</option><option value="bottom">Zdola navrchu</option></select></div>
+   <p class="note">Když obrázky přesahují přes okraj a překrývají se se sousedními, určíte tu, ze které strany leží navrchu – jako tašky na střeše. Stačí i kliknout na okraj dlaždice v editoru (jeden svislý a jeden vodorovný).</p>
   </div></details>
   <details open><summary>Pozadí</summary><div class="body">
    <div class="f w2">Vzor <select data-d="bg.type"><option value="solid">Jednobarevné</option><option value="stripesV">Svislé proužky</option><option value="stripesH">Vodorovné proužky</option><option value="stripesD">Šikmé proužky</option><option value="dots">Puntíky</option><option value="checker">Šachovnice</option></select></div>
@@ -341,6 +347,7 @@ kbd{font:600 12px "Segoe UI",sans-serif;border:1px solid var(--line);border-bott
   <tr><td><kbd>Shift</kbd> + kolečko</td><td>otočení vybrané vrstvy</td></tr>
   <tr><td>Přetažení v seznamu vrstev</td><td>změna pořadí vrstev (výš = navrchu)</td></tr>
   <tr><td>První uložení</td><td>aplikace se zeptá na složku – vyberte přímo složku <b>Onoseto</b>, kam jste aplikaci rozbalil (jsou v ní složky Projekty a Hotové papíry)</td></tr>
+  <tr><td>Záložka Dlaždice</td><td>vrstvy nejdou vybírat; tažením okraje či rohu měníte velikost dlaždice, kliknutím na okraj určíte, ze které strany jsou obrázky na okrajích navrchu</td></tr>
   <tr><td>Šipky</td><td>posun vrstvy o 1 mm (se <kbd>Shift</kbd> o 1 cm)</td></tr>
   <tr><td><kbd>Delete</kbd></td><td>odebrat vrstvu</td></tr>
   <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>duplikovat vrstvu</td></tr>
@@ -382,7 +389,7 @@ const isDark=()=>{const t=document.documentElement.dataset.theme;return t==='dar
 const DEF_FX={hue:0,bri:100,sat:100,gray:false,ol:0,olc:'#ffffff',sh:0,sho:.35};
 const DEF_REP={mode:'one',cols:3,rows:3,half:true,n:12,rv:0,sv:0,rf:false,seed:1};
 const DEF_EX={fmt:'pdf',pw:50,ph:70,fit:true,dpi:300,bleed:3,marks:true,reg:true,slug:true,q:'jpg',full:true,pplain:true};
-function newDoc(){return{tw:20,th:20,bg:{type:'solid',c1:'#c8102e',c2:'#ffffff',n:8,size:40,transp:false},layers:[],ex:{...DEF_EX}}}
+function newDoc(){return{tw:20,th:20,bg:{type:'solid',c1:'#c8102e',c2:'#ffffff',n:8,size:40,transp:false},ov:{h:'none',v:'none'},layers:[],ex:{...DEF_EX}}}
 let doc=newDoc(),sel=-1,laySeq=0,imgSeq=0;
 const IMG={};// id -> {name, vers:[canvas], hits:[], ver, urls:[]}
 const L=()=>doc.layers[sel];
@@ -524,10 +531,15 @@ function drawBg(x,W,H,bg,white){
 function renderTile(ppc,tw,th,opt={}){
  const TW=Math.max(2,Math.round(tw*ppc)),TH=Math.max(2,Math.round(th*ppc)),c=mk(TW,TH),x=c.getContext('2d');
  drawBg(x,TW,TH,doc.bg,opt.white);x.imageSmoothingQuality='high';
- const k=TW/tw;
- for(const l of doc.layers){if(!l.vis)continue;const F=fxOf(l);x.globalAlpha=l.op;
+ const k=TW/tw,ov=doc.ov||{},oh=ov.h||'none',ovv=ov.v||'none',useT=oh!=='none'||ovv!=='none',Q=[];
+ // i/j = z které sousední dlaždice kopie pochází (-1 vlevo/nahoře, +1 vpravo/dole); vyšší „tier“ se kreslí navrch
+ const tier=(i,j)=>(oh==='left'?-i:oh==='right'?i:0)+(ovv==='top'?-j:ovv==='bottom'?j:0);
+ for(const l of doc.layers){if(!l.vis)continue;const F=fxOf(l);
   for(const it of instances(l)){const s=it.w*k/F.cw,dw=F.c.width*s,dh=F.c.height*s,R=Math.hypot(dw,dh)/2,cx=(((it.u%1)+1)%1)*TW,cy=(((it.v%1)+1)%1)*TH;
-   for(const X of copies(cx,R,TW,0,TW))for(const Y of copies(cy,R,TH,0,TH)){x.save();x.translate(X,Y);x.rotate(it.rot*Math.PI/180);if(it.flip)x.scale(-1,1);x.drawImage(F.c,-dw/2,-dh/2,dw,dh);x.restore()}}}
+   for(const X of copies(cx,R,TW,0,TW))for(const Y of copies(cy,R,TH,0,TH)){
+    const draw=()=>{x.globalAlpha=l.op;x.save();x.translate(X,Y);x.rotate(it.rot*Math.PI/180);if(it.flip)x.scale(-1,1);x.drawImage(F.c,-dw/2,-dh/2,dw,dh);x.restore()};
+    if(useT)Q.push({t:tier(Math.round((X-cx)/TW),Math.round((Y-cy)/TH)),o:Q.length,d:draw});else draw()}}}
+ if(useT){Q.sort((a,b)=>a.t-b.t||a.o-b.o);for(const q of Q)q.d()}
  x.globalAlpha=1;
  if(doc.bw){const g=mk(TW,TH),y=g.getContext('2d');y.filter='grayscale(1)';y.drawImage(c,0,0);return g}
  return c;
@@ -535,8 +547,8 @@ function renderTile(ppc,tw,th,opt={}){
 function checker(x,W,H,s){x.fillStyle='#fff';x.fillRect(0,0,W,H);x.fillStyle='#d9d9d9';for(let j=0;j*s<H;j++)for(let i=j%2;i*s<W;i+=2)x.fillRect(i*s,j*s,s,s)}
 
 /* =============== editor =============== */
-let view='edit',E={zoom:1,px:0,py:0,s:1,ox:0,oy:0},SV={zoom:1},drag=null,space=false,pend=0;
-function edFrame(){const cv=$('ed'),W=cv.clientWidth,H=cv.clientHeight,s0=Math.min(W/(doc.tw*1.5),H/(doc.th*1.5));E.s=s0*E.zoom;E.ox=W/2-doc.tw*E.s/2+E.px;E.oy=H/2-doc.th*E.s/2+E.py;return{W,H}}
+let view='edit',mode='layer',E={zoom:1,px:0,py:0,s:1,ox:0,oy:0,fix:null,hover:''},SV={zoom:1},drag=null,space=false,pend=0;
+function edFrame(){const cv=$('ed'),W=cv.clientWidth,H=cv.clientHeight;if(E.fix){E.s=E.fix.s;E.ox=E.fix.ox;E.oy=E.fix.oy;return{W,H}}const s0=Math.min(W/(doc.tw*1.5),H/(doc.th*1.5));E.s=s0*E.zoom;E.ox=W/2-doc.tw*E.s/2+E.px;E.oy=H/2-doc.th*E.s/2+E.py;return{W,H}}
 function primary(l){return{X:(((l.u%1)+1)%1)*doc.tw,Y:(((l.v%1)+1)%1)*doc.th}}
 function drawEditor(){
  const cv=$('ed'),d=devicePixelRatio||1,{W,H}=edFrame();if(!W||!H)return;
@@ -551,7 +563,8 @@ function drawEditor(){
   for(let X=tx%tW;X<cv.width;X+=tW){x.beginPath();x.moveTo(X,0);x.lineTo(X,cv.height);x.stroke()}for(let Y=ty%tH;Y<cv.height;Y+=tH){x.beginPath();x.moveTo(0,Y);x.lineTo(cv.width,Y);x.stroke()}x.restore()}
  if($('dim').checked){x.fillStyle=isDark()?'rgba(12,9,7,.62)':'rgba(255,253,249,.62)';x.beginPath();x.rect(0,0,cv.width,cv.height);x.rect(tx,ty,tW,tH);x.fill('evenodd')}
  x.strokeStyle=isDark()?'#fff':'#2a211b';x.lineWidth=1.5*d;x.setLineDash([]);x.strokeRect(tx,ty,tW,tH);
- const l=L();
+ const l=mode==='layer'?L():null;
+ if(mode==='tile')drawTileUI(x,d,tx,ty,tW,tH);
  if(l&&l.vis){const asp=aspect(l),lo=-E.ox/E.s,hiX=(W-E.ox)/E.s,hiY=(H-E.oy)/E.s,loY=-E.oy/E.s;
   x.save();x.strokeStyle='#c8102e';x.lineWidth=1.2*d;x.setLineDash([5*d,4*d]);
   for(const it of instances(l)){const w=it.w,h=w*asp,R=Math.hypot(w,h)/2,cx=(((it.u%1)+1)%1)*doc.tw,cy=(((it.v%1)+1)%1)*doc.th;
@@ -565,6 +578,29 @@ function drawEditor(){
  if(!doc.layers.length){x.fillStyle=isDark()?'#f1e8dc':'#2a211b';x.font=`600 ${15*d}px "Segoe UI",sans-serif`;x.textAlign='center';x.fillText('Přidejte obrázek, text nebo tvar tlačítky vlevo',cv.width/2,ty+tH/2)}
  $('zoomTxt').textContent=Math.round(E.zoom*100)+' %';
 }
+const OVTXT={top:'obrázky shora jsou navrchu',bottom:'obrázky zdola jsou navrchu',left:'obrázky zleva jsou navrchu',right:'obrázky zprava jsou navrchu'};
+function drawTileUI(x,d,tx,ty,tW,tH){
+ const ov=doc.ov||{},on={t:ov.v==='top',b:ov.v==='bottom',l:ov.h==='left',r:ov.h==='right'},ed={t:[tx,ty,tx+tW,ty],b:[tx,ty+tH,tx+tW,ty+tH],l:[tx,ty,tx,ty+tH],r:[tx+tW,ty,tx+tW,ty+tH]};
+ x.save();x.lineCap='round';
+ for(const k of 't b l r'.split(' ')){const[a,b,c,e]=ed[k],hv=E.hover.includes(k);
+  if(on[k]||hv){x.beginPath();x.moveTo(a,b);x.lineTo(c,e);x.strokeStyle='#fff';x.lineWidth=(on[k]?11:8)*d;x.stroke();x.strokeStyle=on[k]?'#c8102e':'rgba(200,16,46,.55)';x.lineWidth=(on[k]?6:4)*d;x.stroke()}}
+ x.fillStyle='#fff';x.strokeStyle='#2a211b';x.lineWidth=1.5*d;
+ for(const[a,b]of[[tx,ty],[tx+tW/2,ty],[tx+tW,ty],[tx,ty+tH/2],[tx+tW,ty+tH/2],[tx,ty+tH],[tx+tW/2,ty+tH],[tx+tW,ty+tH]]){x.fillRect(a-5*d,b-5*d,10*d,10*d);x.strokeRect(a-5*d,b-5*d,10*d,10*d)}
+ x.font=`600 ${12.5*d}px "Segoe UI",sans-serif`;x.textAlign='center';x.textBaseline='middle';
+ const tag=(t,X,Y,rot)=>{x.save();x.translate(X,Y);x.rotate(rot);const w=x.measureText(t).width+14*d;x.fillStyle='#c8102e';x.strokeStyle='#fff';x.lineWidth=2*d;x.beginPath();x.roundRect(-w/2,-11*d,w,22*d,11*d);x.fill();x.stroke();x.fillStyle='#fff';x.fillText(t,0,0);x.restore()};
+ if(on.t)tag('↓ '+OVTXT.top,tx+tW/2,ty+20*d,0);if(on.b)tag('↑ '+OVTXT.bottom,tx+tW/2,ty+tH-20*d,0);
+ if(on.l)tag('→ '+OVTXT.left,tx+20*d,ty+tH/2,-Math.PI/2);if(on.r)tag('← '+OVTXT.right,tx+tW-20*d,ty+tH/2,Math.PI/2);
+ const sz=`${fmt(doc.tw)} × ${fmt(doc.th)} cm`;x.fillStyle=isDark()?'#f1e8dc':'#2a211b';x.fillText(sz,tx+tW/2,ty+tH+18*d);
+ x.restore();
+}
+function hitTileEdge(p){
+ const t=9,x0=E.ox,x1=E.ox+doc.tw*E.s,y0=E.oy,y1=E.oy+doc.th*E.s,inY=p.sy>y0-t&&p.sy<y1+t,inX=p.sx>x0-t&&p.sx<x1+t;let r='';
+ if(Math.abs(p.sy-y0)<t&&inX)r+='t';else if(Math.abs(p.sy-y1)<t&&inX)r+='b';
+ if(Math.abs(p.sx-x0)<t&&inY)r+='l';else if(Math.abs(p.sx-x1)<t&&inY)r+='r';
+ return r;
+}
+const EDGE_CUR={t:'ns-resize',b:'ns-resize',l:'ew-resize',r:'ew-resize',tl:'nwse-resize',br:'nwse-resize',tr:'nesw-resize',bl:'nesw-resize'};
+function setMode(m){mode=m;const t=m==='tile';$('tTile').classList.toggle('on',t);$('tLayer').classList.toggle('on',!t);$('pLayer').hidden=t;$('pTile').hidden=!t;$('tileTip').hidden=!t;$('edTipL').hidden=t;if(t)sel=-1;E.hover='';refreshAll()}
 function toCm(e){const r=$('ed').getBoundingClientRect();return{x:(e.clientX-r.left-E.ox)/E.s,y:(e.clientY-r.top-E.oy)/E.s,sx:e.clientX-r.left,sy:e.clientY-r.top}}
 function hitLayer(p){
  for(let k=doc.layers.length-1;k>=0;k--){const l=doc.layers[k];if(!l.vis||l.lock)continue;const asp=aspect(l),hm=srcOf(l).hit;
@@ -584,6 +620,9 @@ const ed=$('ed');
 ed.addEventListener('pointerdown',e=>{
  if(view!=='edit')return;const p=toCm(e);ed.setPointerCapture(e.pointerId);
  if(e.button===1||space){drag={m:'pan',sx:e.clientX,sy:e.clientY,px:E.px,py:E.py};return}
+ if(mode==='tile'){const ed=hitTileEdge(p);
+  if(ed){E.fix={s:E.s,ox:E.ox,oy:E.oy};drag={m:'tile',ed,sx:e.clientX,sy:e.clientY,tw0:doc.tw,th0:doc.th,ox0:E.ox,oy0:E.oy,moved:false};return}
+  drag={m:'pan',sx:e.clientX,sy:e.clientY,px:E.px,py:E.py};return}
  const hh=hitHandle(p),l=L();
  if(hh){const P=primary(l),cx=E.ox+P.X*E.s,cy=E.oy+P.Y*E.s;drag={m:hh,cx,cy,w:l.w,rot:l.rot,d0:Math.hypot(p.sx-cx,p.sy-cy),a0:Math.atan2(p.sy-cy,p.sx-cx)};return}
  const k=hitLayer(p);
@@ -592,6 +631,12 @@ ed.addEventListener('pointerdown',e=>{
 });
 ed.addEventListener('pointermove',e=>{
  const p=toCm(e);
+ if(!drag&&mode==='tile'&&view==='edit'){const h=hitTileEdge(p);if(h!==E.hover){E.hover=h;req()}ed.style.cursor=space?'grab':EDGE_CUR[h]||'default';return}
+ if(drag&&drag.m==='tile'){const dx=(e.clientX-drag.sx)/E.fix.s,dy=(e.clientY-drag.sy)/E.fix.s;if(!drag.moved&&Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<4)return;drag.moved=true;
+  const st=e.shiftKey?1:.1,rd=v=>clamp(Math.round(v/st)*st,2,200);let tw=drag.tw0,th=drag.th0;
+  if(drag.ed.includes('r'))tw=rd(drag.tw0+dx);if(drag.ed.includes('l')){tw=rd(drag.tw0-dx);E.fix.ox=drag.ox0+(drag.tw0-tw)*E.fix.s}
+  if(drag.ed.includes('b'))th=rd(drag.th0+dy);if(drag.ed.includes('t')){th=rd(drag.th0-dy);E.fix.oy=drag.oy0+(drag.th0-th)*E.fix.s}
+  doc.tw=+tw.toFixed(1);doc.th=+th.toFixed(1);msg(`Dlaždice ${fmt(doc.tw)} × ${fmt(doc.th)} cm (se Shiftem po 1 cm)`);refreshAll();return}
  if(!drag){if(view==='edit'){const hh=hitHandle(p);ed.style.cursor=space?'grab':hh==='rot'?'alias':hh?'nwse-resize':hitLayer(p)>=0?'move':'default'}return}
  const l=L();
  if(drag.m==='pan'){E.px=drag.px+e.clientX-drag.sx;E.py=drag.py+e.clientY-drag.sy;ed.style.cursor='grabbing';req();return}
@@ -600,10 +645,17 @@ ed.addEventListener('pointermove',e=>{
  else if(drag.m==='rot'){let r=drag.rot+(Math.atan2(p.sy-drag.cy,p.sx-drag.cx)-drag.a0)*180/Math.PI;if(e.shiftKey)r=Math.round(r/15)*15;l.rot=((r+540)%360)-180;drag.moved=true}
  req();syncInspector();
 });
-ed.addEventListener('pointerup',()=>{if(!drag)return;const l=L();if(l&&drag.m!=='pan'){l.u=((l.u%1)+1)%1;l.v=((l.v%1)+1)%1;if(drag.moved)push()}drag=null;ed.style.cursor='default';refreshAll()});
+ed.addEventListener('pointerup',()=>{
+ if(drag&&drag.m==='tile'){const d0=drag;drag=null;
+  if(d0.moved){const cv=$('ed'),W=cv.clientWidth,H=cv.clientHeight,s0=Math.min(W/(doc.tw*1.5),H/(doc.th*1.5)),f=E.fix;E.zoom=f.s/s0;E.px=f.ox-(W/2-doc.tw*f.s/2);E.py=f.oy-(H/2-doc.th*f.s/2);E.fix=null;push();refreshAll();return}
+  E.fix=null;
+  if(d0.ed.length===1){const ov=doc.ov||(doc.ov={h:'none',v:'none'}),k=d0.ed,map={t:['v','top'],b:['v','bottom'],l:['h','left'],r:['h','right']},[ax,val]=map[k];
+   ov[ax]=ov[ax]===val?'none':val;push();msg(ov[ax]==='none'?'Na '+(ax==='v'?'horním a dolním':'levém a pravém')+' okraji rozhoduje pořadí vrstev.':'Na okrajích: '+OVTXT[val]+'.')}
+  refreshAll();return}
+ if(!drag)return;const l=L();if(l&&drag.m!=='pan'){l.u=((l.u%1)+1)%1;l.v=((l.v%1)+1)%1;if(drag.moved)push()}drag=null;ed.style.cursor='default';refreshAll()});
 ed.addEventListener('wheel',e=>{
  e.preventDefault();const l=L();
- if(l&&(e.altKey||e.shiftKey)){if(e.shiftKey)l.rot=((l.rot+(e.deltaY>0?5:-5)+540)%360)-180;else l.w=Math.max(.1,l.w*(e.deltaY<0?1.06:1/1.06));pushLater();refreshAll();return}
+ if(l&&mode==='layer'&&(e.altKey||e.shiftKey)){if(e.shiftKey)l.rot=((l.rot+(e.deltaY>0?5:-5)+540)%360)-180;else l.w=Math.max(.1,l.w*(e.deltaY<0?1.06:1/1.06));pushLater();refreshAll();return}
  zoomAt(e.deltaY<0?1.15:1/1.15,toCm(e));
 },{passive:false});
 function zoomAt(f,p){
@@ -659,7 +711,7 @@ $('layers').addEventListener('click',e=>{
  else if(a==='up'){if(i<doc.layers.length-1){[doc.layers[i],doc.layers[i+1]]=[doc.layers[i+1],doc.layers[i]];sel=i+1;push()}refreshAll();return}
  else if(a==='down'){if(i>0){[doc.layers[i],doc.layers[i-1]]=[doc.layers[i-1],doc.layers[i]];sel=i-1;push()}refreshAll();return}
  else if(a==='del'){sel=i;delLayer();return}
- sel=i;refreshAll();
+ sel=i;if(mode!=='layer')setMode('layer');else refreshAll();
 });
 
 /* =============== inspektor =============== */
@@ -688,8 +740,8 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('change',e=>{if(e.target.dataset.k||e.target.dataset.d||e.target.dataset.x)push()});
 for(const[id,ax]of[['px','u'],['py','v']])$(id).addEventListener('input',e=>{const l=L(),v=parseFloat(e.target.value);if(!l||isNaN(v))return;l[ax]=(((v/(ax==='u'?doc.tw:doc.th))%1)+1)%1;req()}),$(id).addEventListener('change',push);
-$('tLayer').onclick=()=>{$('tLayer').classList.add('on');$('tTile').classList.remove('on');$('pLayer').hidden=false;$('pTile').hidden=true};
-$('tTile').onclick=()=>{$('tTile').classList.add('on');$('tLayer').classList.remove('on');$('pLayer').hidden=true;$('pTile').hidden=false};
+$('tLayer').onclick=()=>setMode('layer');
+$('tTile').onclick=()=>setMode('tile');
 $('shapeSel').innerHTML=Object.entries(SHAPES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
 
 /* =============== přidávání a úpravy =============== */
@@ -746,7 +798,7 @@ async function deserialize(txt){
  const load=src=>new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(new Error('obrázek v projektu je poškozený'));i.src=src});
  const map={};
  for(const[k,v]of Object.entries(o.images||{})){const a=fromSource(await load(v.orig)),b=v.cur?fromSource(await load(v.cur)):null;map[k]=addImage(a,v.name,b);IMG[map[k]].urls[0]=v.orig;if(b)IMG[map[k]].urls[1]=v.cur}
- const d=o.doc;d.ex={...DEF_EX,...(d.ex||{})};d.bg={...newDoc().bg,...(d.bg||{})};
+ const d=o.doc;d.ex={...DEF_EX,...(d.ex||{})};d.bg={...newDoc().bg,...(d.bg||{})};d.ov={h:'none',v:'none',...(d.ov||{})};
  d.layers=d.layers.map(l=>normLayer({...l,id:++laySeq,img:l.type==='image'?map[l.img]:undefined})).filter(l=>l.type!=='image'||l.img);
  doc=d;sel=-1;curName=o.name||curName;hist=[];fut=[];push();dirty=false;title();E.zoom=1;E.px=E.py=0;refreshAll();
 }
@@ -1009,7 +1061,7 @@ document.addEventListener('keydown',e=>{
  if(e.ctrlKey&&k==='y'){e.preventDefault();redo();return}
  if(e.ctrlKey&&k==='0'){e.preventDefault();$('zFit').click();return}
  if(e.code==='Space'){e.preventDefault();space=true;ed.style.cursor='grab';return}
- const l=L();if(!l)return;
+ const l=mode==='layer'?L():null;if(!l)return;
  if(e.ctrlKey&&k==='d'){e.preventDefault();dupLayer();return}
  if(k==='delete'||k==='backspace'){e.preventDefault();delLayer();return}
  if(k==='escape'){sel=-1;refreshAll();return}
@@ -1030,7 +1082,7 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change',req);
 
 window.__onosetoSerialize=()=>serialize();
 /* =============== verze a aktualizace =============== */
-const APP_VER='1.1',VER_URL='https://raw.githubusercontent.com/Jedn0ta/OnosetoGiftPaper/main/aplikace/verze.json';
+const APP_VER='1.2',VER_URL='https://raw.githubusercontent.com/Jedn0ta/OnosetoGiftPaper/main/aplikace/verze.json';
 const verCmp=(a,b)=>{const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d}return 0};
 async function checkUpdate(show){
  const out=$('abUpd');if(show)out.textContent='Kontroluji, jestli je k dispozici novější verze…';

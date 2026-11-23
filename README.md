@@ -28,6 +28,7 @@ Při prvním uložení se aplikace zeptá na složku. Vyberte **přímo složku,
 
 - vrstvy z obrázků, textu a tvarů (kruh, elipsa, obdélníky, hvězda, srdce, komiksové bubliny…), přetahování pořadí myší
 - posun, změna velikosti a otáčení úchyty, přiblížení a posun pohledu
+- velikost dlaždice tažením okraje nebo rohu; volba, ze které strany jsou obrázky na okrajích dlaždice navrchu
 - opakování vrstvy v mřížce nebo náhodně rozsypané, obrys jako nálepka, stín, úpravy barev, odstranění jednobarevného pozadí
 - pozadí jednobarevné, proužky, puntíky, šachovnice; převod celého vzoru do černobílé
 - export PDF pro tisk: spadávka (výchozí 3 mm), ořezové a pasovací značky v registrační barvě, popisek, TrimBox a BleedBox, černobíle v odstínech šedi
