@@ -134,6 +134,8 @@ dialog::backdrop{background:rgba(30,15,10,.45)}
 .fdpick li{margin:0 0 6px}
 @media(max-width:600px){.fdpick{flex-direction:column}}
 #projList{display:grid;gap:6px}
+.kindrow{display:grid;grid-template-columns:40px minmax(0,1fr) 138px;gap:8px;align-items:center;margin:6px 0;font-size:13px}
+.kindrow select{font-size:13px;padding:4px 5px}
 #projList button{justify-content:space-between;width:100%;padding:10px 12px}
 #projList small{color:var(--mut)}
 table.keys{border-collapse:collapse;width:100%;font-size:13.5px}
@@ -175,10 +177,11 @@ kbd{font:600 12px "Segoe UI",sans-serif;border:1px solid var(--line);border-bott
 </aside>
 <section id="center">
  <div class="vbar">
-  <div class="seg"><label><input type="radio" name="view" value="edit" checked>Úprava dlaždice</label><label><input type="radio" name="view" value="sheet">Náhled archu</label></div>
+  <div class="seg" id="viewSeg"><label><input type="radio" name="view" value="edit" checked>Úprava dlaždice</label><label><input type="radio" name="view" value="sheet">Náhled archu</label></div>
   <label class="chk" id="dimL"><input type="checkbox" id="dim" checked> Ztlumit okolí</label>
   <span id="edTipL" hidden></span><span id="tileTip" hidden style="font-size:12.5px;color:var(--acc);font-weight:600">Táhněte okraj = velikost · klik na okraj = ta strana navrchu</span>
-  <label class="chk"><input type="checkbox" id="grid"> Hranice dlaždic</label>
+  <span id="apTip" hidden style="font-size:12.5px;font-weight:600">Aperiodický vzor – na archu se nikde neopakuje. Kolečkem přiblížíte, tažením posunete.</span>
+  <label class="chk" id="gridL"><input type="checkbox" id="grid"> Hranice dlaždic</label>
   <div class="zoom"><button id="zOut" title="Oddálit">−</button><span id="zoomTxt">100 %</span><button id="zIn" title="Přiblížit">+</button><button id="zFit" title="Přizpůsobit (Ctrl+0)">Přizpůsobit</button></div>
  </div>
  <div id="stage"><canvas id="ed"></canvas><canvas id="pv" hidden></canvas><div id="drophint">Pusťte obrázek – přidá se jako nová vrstva</div></div>
@@ -190,12 +193,12 @@ kbd{font:600 12px "Segoe UI",sans-serif;border:1px solid var(--line);border-bott
   <div id="lp">
    <details open><summary>Umístění a velikost</summary><div class="body">
     <div class="f w2">Název <input type="text" data-k="name"></div>
-    <div class="xy">Poloha <label>X <input type="number" id="px" step="0.1"></label><label>Y <input type="number" id="py" step="0.1"></label></div>
+    <div class="xy" data-noap>Poloha <label>X <input type="number" id="px" step="0.1"></label><label>Y <input type="number" id="py" step="0.1"></label></div>
     <div class="f">Šířka (cm) <input type="range" data-k="w" min="0.5" max="80" step="0.1"><input type="number" data-k="w" min="0.1" max="400" step="0.1"></div>
     <div class="f">Otočení (°) <input type="range" data-k="rot" min="-180" max="180" step="1"><input type="number" data-k="rot" min="-180" max="180" step="1"></div>
     <div class="f">Krytí (%) <input type="range" data-k="op" data-mul="100" min="5" max="100" step="1"><input type="number" data-k="op" data-mul="100" min="5" max="100" step="1"></div>
     <label class="chkl"><input type="checkbox" data-k="flip"> Zrcadlit</label>
-    <div class="row"><button id="lCenter" type="button">Na střed</button><button id="lCorner" type="button" title="Umístí střed vrstvy do rohu dlaždice – rozdělí se do všech čtyř rohů">Do rohu</button><button id="lDup" type="button" title="Ctrl+D">Duplikovat</button><button id="lDel" type="button" title="Delete">Odebrat vrstvu</button></div>
+    <div class="row"><button id="lCenter" type="button" data-noap>Na střed</button><button id="lCorner" type="button" data-noap title="Umístí střed vrstvy do rohu dlaždice – rozdělí se do všech čtyř rohů">Do rohu</button><button id="lDup" type="button" title="Ctrl+D">Duplikovat</button><button id="lDel" type="button" title="Delete">Odebrat vrstvu</button></div>
    </div></details>
    <details open data-type="text"><summary>Text</summary><div class="body">
     <textarea data-k="text.t" rows="2"></textarea>
@@ -214,7 +217,7 @@ kbd{font:600 12px "Segoe UI",sans-serif;border:1px solid var(--line);border-bott
     <div class="f">Tolerance <input type="range" id="tol" min="0" max="100" value="30"><span></span></div>
     <div class="row"><button id="rmbg" type="button">Odstranit jednobarevné pozadí</button><button id="rstbg" type="button">Vrátit původní</button></div>
    </div></details>
-   <details open><summary>Opakování ve dlaždici</summary><div class="body">
+   <details open data-noap><summary>Opakování ve dlaždici</summary><div class="body">
     <div class="f w2">Režim <select data-k="rep.mode"><option value="one">Jednou</option><option value="grid">Mřížka</option><option value="scatter">Rozsypat náhodně</option></select></div>
     <div data-rep="grid">
      <div class="f">Sloupce <input type="range" data-k="rep.cols" min="1" max="12" step="1"><input type="number" data-k="rep.cols" min="1" max="30" step="1"></div>
@@ -247,16 +250,50 @@ kbd{font:600 12px "Segoe UI",sans-serif;border:1px solid var(--line);border-bott
   </div>
  </div>
  <div id="pTile" hidden>
-  <details open><summary>Velikost dlaždice</summary><div class="body">
+   <details open><summary>Skladba vzoru</summary><div class="body">
+    <div class="f w2">Vzor <select data-d="ap.type" id="apType"></select></div>
+    <p class="note" data-noap>Opakující se dlaždice navazuje do všech stran – arch je složený z mnoha stejných kopií. Aperiodické vzory pokryjí arch tak, že se nikde neopakují.</p>
+    <p class="note" data-aponly id="apAbout"></p>
+   </div></details>
+   <details open data-aponly><summary>Aperiodické dláždění</summary><div class="body">
+    <div class="f">Velikost (cm) <input type="range" data-d="ap.size" min="1.5" max="30" step="0.5"><input type="number" data-d="ap.size" min="0.5" max="100" step="0.5"></div>
+    <div class="f">Natočení (°) <input type="range" data-d="ap.rot" min="0" max="180" step="1"><input type="number" data-d="ap.rot" min="-360" max="360" step="1"></div>
+    <div class="f c">Spáry <input type="color" data-d="ap.lc"><span></span></div>
+    <div class="f">Šířka spár (mm) <input type="range" data-d="ap.lw" min="0" max="6" step="0.1"><input type="number" data-d="ap.lw" min="0" max="20" step="0.1"></div>
+    <label class="chkl" data-apcurve><input type="checkbox" data-d="ap.curve"> Zakřivené hrany (pravý Spectre)</label>
+    <div class="xy">Arch (cm) <label>Š <input type="number" data-x="pw" min="5" max="300" step="0.1"></label><label>V <input type="number" data-x="ph" min="5" max="300" step="0.1"></label></div>
+    <p class="note" id="apInfo"></p>
+   </div></details>
+   <details open data-aponly><summary>Druhy dlaždic</summary><div class="body">
+    <div class="f w2">Barvy <select data-d="ap.cm"><option value="kind">Podle druhu</option><option value="orient">Podle natočení</option><option value="random">Náhodně z barev níže</option></select></div>
+    <div id="apKinds"></div>
+    <p class="note">U každého druhu nastavíte barvu a obsah: prázdnou dlaždici, náhodný motiv z vašich vrstev, nebo jednu konkrétní vrstvu.</p>
+   </div></details>
+   <details open data-aponly><summary>Motivy v dlaždicích</summary><div class="body">
+    <div class="f">Hustota (%) <input type="range" data-d="ap.md" min="0" max="100" step="1"><input type="number" data-d="ap.md" min="0" max="100" step="1"></div>
+    <div class="f">Velikost (%) <input type="range" data-d="ap.ms" min="10" max="200" step="1"><input type="number" data-d="ap.ms" min="5" max="400" step="1"></div>
+    <label class="chkl"><input type="checkbox" data-d="ap.mrot"> Natáčet motivy s dlaždicí</label>
+    <label class="chkl"><input type="checkbox" data-d="ap.clip"> Oříznout motiv tvarem dlaždice</label>
+    <div class="row"><button type="button" id="apSeed">Zamíchat náhodu</button></div>
+    <p class="note">Motivy jsou vaše vrstvy (obrázky, texty, tvary). Barvy, obrys a stín motivu upravíte v záložce Vrstva, poměr velikostí motivů jejich šířkou.</p>
+   </div></details>
+   <details open data-aponly><summary>Jednotlivé dlaždice</summary><div class="body">
+    <div class="seg" style="display:grid;grid-template-columns:repeat(4,1fr)"><label><input type="radio" name="brush" value="off" checked>Posun</label><label><input type="radio" name="brush" value="color">Barva</label><label><input type="radio" name="brush" value="motif">Obsah</label><label><input type="radio" name="brush" value="erase">Vrátit</label></div>
+    <div class="f c" style="margin-top:10px">Barva štětce <input type="color" id="brC" value="#c8102e"><span></span></div>
+    <div class="f w2">Obsah štětce <select id="brM"></select></div>
+    <p class="note">Zvolte <b>Barva</b> nebo <b>Obsah</b> a klikejte či táhněte po dlaždicích na archu – změní se jen ty, na které kliknete. <b>Vrátit</b> vrátí dlaždici do původní podoby.</p>
+    <div class="row"><button type="button" id="apClear">Žádné ruční úpravy</button></div>
+   </div></details>
+   <details open data-noap><summary>Velikost dlaždice</summary><div class="body">
    <div class="xy">Rozměr <label>Š <input type="number" data-d="tw" min="2" max="200" step="0.5"></label><label>V <input type="number" data-d="th" min="2" max="200" step="0.5"></label></div>
    <p class="note">V centimetrech. Velikost změníte také tažením okraje nebo rohu dlaždice v editoru (se Shiftem po 1 cm).</p>
   </div></details>
-  <details open><summary>Překrývání na okrajích</summary><div class="body">
+  <details open data-noap><summary>Překrývání na okrajích</summary><div class="body">
    <div class="f w2">Vodorovně <select data-d="ov.h"><option value="none">Podle pořadí vrstev</option><option value="left">Zleva navrchu</option><option value="right">Zprava navrchu</option></select></div>
    <div class="f w2">Svisle <select data-d="ov.v"><option value="none">Podle pořadí vrstev</option><option value="top">Shora navrchu</option><option value="bottom">Zdola navrchu</option></select></div>
    <p class="note">Když obrázky přesahují přes okraj a překrývají se se sousedními, určíte tu, ze které strany leží navrchu – jako tašky na střeše. Stačí i kliknout na okraj dlaždice v editoru (jeden svislý a jeden vodorovný).</p>
   </div></details>
-  <details open><summary>Pozadí</summary><div class="body">
+  <details open data-noap><summary>Pozadí</summary><div class="body">
    <div class="f w2">Vzor <select data-d="bg.type"><option value="solid">Jednobarevné</option><option value="stripesV">Svislé proužky</option><option value="stripesH">Vodorovné proužky</option><option value="stripesD">Šikmé proužky</option><option value="dots">Puntíky</option><option value="checker">Šachovnice</option></select></div>
    <div class="f c">Barvy <input type="color" data-d="bg.c1"><span style="display:flex;align-items:center;gap:8px"><input type="color" data-d="bg.c2" data-bgx></span></div>
    <div class="f" data-bgx>Počet <input type="range" data-d="bg.n" min="1" max="40" step="1"><input type="number" data-d="bg.n" min="1" max="80" step="1"></div>
@@ -277,12 +314,12 @@ kbd{font:600 12px "Segoe UI",sans-serif;border:1px solid var(--line);border-bott
  <div class="db"><div class="exgrid">
   <div>
    <fieldset><legend>Co uložit</legend>
-    <div class="seg" style="display:grid;grid-template-columns:repeat(3,1fr)"><label><input type="radio" name="exfmt" value="pdf">PDF pro tisk</label><label><input type="radio" name="exfmt" value="png">PNG – arch</label><label><input type="radio" name="exfmt" value="tile">PNG – dlaždice</label></div>
+    <div class="seg" style="display:grid;grid-template-columns:repeat(3,1fr)"><label><input type="radio" name="exfmt" value="pdf">PDF pro tisk</label><label><input type="radio" name="exfmt" value="png">PNG – arch</label><label data-noap><input type="radio" name="exfmt" value="tile">PNG – dlaždice</label></div>
    </fieldset>
    <fieldset id="exSheet"><legend>Arch (čistý formát po ořezu)</legend>
     <div class="f w2">Formát <select id="exPreset"><option value="21x29.7">A4 (21 × 29,7 cm)</option><option value="29.7x42">A3 (29,7 × 42 cm)</option><option value="42x59.4">A2 (42 × 59,4 cm)</option><option value="59.4x84.1">A1 (59,4 × 84,1 cm)</option><option value="50x70">50 × 70 cm</option><option value="70x100">70 × 100 cm</option><option value="70x200">Role 70 × 200 cm</option><option value="">Vlastní</option></select></div>
     <div class="xy">Rozměr <label>Š <input type="number" data-x="pw" min="5" max="300" step="0.1"></label><label>V <input type="number" data-x="ph" min="5" max="300" step="0.1"></label></div>
-    <label class="chkl"><input type="checkbox" data-x="fit"> I celé archy na sebe navazují (dlaždice se nepatrně přizpůsobí)</label>
+    <label class="chkl" data-noap><input type="checkbox" data-x="fit"> I celé archy na sebe navazují (dlaždice se nepatrně přizpůsobí)</label>
    </fieldset>
    <fieldset><legend>Barvy</legend>
     <label class="chkl"><input type="checkbox" data-d="bw"> Černobíle (v PDF jako odstíny šedi – tiskne se jen černou)</label>
@@ -348,7 +385,9 @@ kbd{font:600 12px "Segoe UI",sans-serif;border:1px solid var(--line);border-bott
   <tr><td>Přetažení v seznamu vrstev</td><td>změna pořadí vrstev (výš = navrchu)</td></tr>
   <tr><td>První uložení</td><td>aplikace se zeptá na složku – vyberte přímo složku <b>Onoseto</b>, kam jste aplikaci rozbalil (jsou v ní složky Projekty a Hotové papíry)</td></tr>
   <tr><td>Záložka Dlaždice</td><td>vrstvy nejdou vybírat; tažením okraje či rohu měníte velikost dlaždice, kliknutím na okraj určíte, ze které strany jsou obrázky na okrajích navrchu</td></tr>
-  <tr><td>Šipky</td><td>posun vrstvy o 1 mm (se <kbd>Shift</kbd> o 1 cm)</td></tr>
+     <tr><td>Aperiodický vzor</td><td>Dlaždice → Skladba vzoru: klobouk, spectre, Penrose a další. Arch se nikde neopakuje.</td></tr>
+   <tr><td>Štětec (aperiodický vzor)</td><td>Dlaždice → Jednotlivé dlaždice: Barva / Obsah a klikání na dlaždice v archu</td></tr>
+   <tr><td>Šipky</td><td>posun vrstvy o 1 mm (se <kbd>Shift</kbd> o 1 cm)</td></tr>
   <tr><td><kbd>Delete</kbd></td><td>odebrat vrstvu</td></tr>
   <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>duplikovat vrstvu</td></tr>
   <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>zpět / znovu</td></tr>
@@ -385,15 +424,268 @@ function shade(hex,f){const n=parseInt(hex.slice(1),16);let r=n>>16,g=n>>8&255,b
 function msg(t,err){$('stMsg').textContent=t;$('stMsg').className='grow'+(err?' err':'')}
 const isDark=()=>{const t=document.documentElement.dataset.theme;return t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches)};
 
+/* =============== aperiodické dláždění – geometrie =============== */
+const APG=(()=>{
+ const pt=(x,y)=>({x,y}),ID=[1,0,0,0,1,0],PI=Math.PI,hr3=Math.sqrt(3)/2;
+ const mul=(A,B)=>[A[0]*B[0]+A[1]*B[3],A[0]*B[1]+A[1]*B[4],A[0]*B[2]+A[1]*B[5]+A[2],A[3]*B[0]+A[4]*B[3],A[3]*B[1]+A[4]*B[4],A[3]*B[2]+A[4]*B[5]+A[5]];
+ const inv=T=>{const d=T[0]*T[4]-T[1]*T[3];return[T[4]/d,-T[1]/d,(T[1]*T[5]-T[2]*T[4])/d,-T[3]/d,T[0]/d,(T[2]*T[3]-T[0]*T[5])/d]};
+ const trot=a=>{const c=Math.cos(a),s=Math.sin(a);return[c,-s,0,s,c,0]};
+ const ttr=(x,y)=>[1,0,x,0,1,y];
+ const tp=(M,P)=>pt(M[0]*P.x+M[1]*P.y+M[2],M[3]*P.x+M[4]*P.y+M[5]);
+ const padd=(a,b)=>pt(a.x+b.x,a.y+b.y),psub=(a,b)=>pt(a.x-b.x,a.y-b.y);
+ const rotAbout=(p,a)=>mul(ttr(p.x,p.y),mul(trot(a),ttr(-p.x,-p.y)));
+ const matchSeg=(p,q)=>[q.x-p.x,p.y-q.y,p.x,q.y-p.y,q.x-p.x,p.y];
+ const matchTwo=(p1,q1,p2,q2)=>mul(matchSeg(p2,q2),inv(matchSeg(p1,q1)));
+ const isect=(p1,q1,p2,q2)=>{const d=(q2.y-p2.y)*(q1.x-p1.x)-(q2.x-p2.x)*(q1.y-p1.y),u=((q2.x-p2.x)*(p1.y-p2.y)-(q2.y-p2.y)*(p1.x-p2.x))/d;return pt(p1.x+u*(q1.x-p1.x),p1.y+u*(q1.y-p1.y))};
+ const det=T=>T[0]*T[4]-T[1]*T[3];
+ // poloměr všech listů metadlaždice od jejího počátku (horní odhad, pro ořez)
+ const rad=g=>g.rad??(g.rad=g.leaf?Math.max(...g.pts.map(p=>Math.hypot(p.x,p.y))):Math.max(...g.ch.map(c=>Math.hypot(c.T[2],c.T[5])+rad(c.g)*Math.sqrt(Math.abs(det(c.T))))));
+ function leaves(top,c,R){const out=[];const go=(g,T)=>{if(Math.hypot(T[2]-c.x,T[5]-c.y)-rad(g)*Math.sqrt(Math.abs(det(T)))>R)return;if(g.leaf){out.push({T,g});return}for(const ch of g.ch)go(ch.g,mul(T,ch.T))};go(top,ID);return out}
+
+ /* ---- Klobouk (Smith, Myers, Kaplan, Goodman-Strauss 2023) – metadlaždice H, T, P, F podle C. Kaplana ---- */
+ const hexPt=(x,y)=>pt(x+.5*y,hr3*y);
+ const HAT=[hexPt(0,0),hexPt(-1,-1),hexPt(0,-2),hexPt(2,-2),hexPt(2,-1),hexPt(4,-2),hexPt(5,-1),hexPt(4,0),hexPt(3,0),hexPt(2,2),hexPt(0,3),hexPt(0,2),hexPt(-1,2)];
+ const HAT14=[HAT[0],HAT[1],HAT[2],hexPt(1,-2),...HAT.slice(3)];// 14 hran (dvojitá hrana rozdělená)
+ const hleaf=label=>({leaf:true,label,pts:HAT14});
+ const LH1=hleaf('H1'),LH=hleaf('H'),LT=hleaf('T'),LP=hleaf('P'),LF=hleaf('F');
+ const meta=(shape,width)=>({shape,width,ch:[]});
+ const evalCh=(m,n,i)=>tp(m.ch[n].T,m.ch[n].g.shape[i]);
+ function recentre(m){let cx=0,cy=0;for(const p of m.shape){cx+=p.x;cy+=p.y}cx/=m.shape.length;cy/=m.shape.length;m.shape=m.shape.map(p=>pt(p.x-cx,p.y-cy));const M=ttr(-cx,-cy);for(const c of m.ch)c.T=mul(M,c.T)}
+ function hatBase(){
+  const Ho=[pt(0,0),pt(4,0),pt(4.5,hr3),pt(2.5,5*hr3),pt(1.5,5*hr3),pt(-.5,hr3)],H=meta(Ho,2);
+  H.ch.push({T:matchTwo(HAT[5],HAT[7],Ho[5],Ho[0]),g:LH},{T:matchTwo(HAT[9],HAT[11],Ho[1],Ho[2]),g:LH},{T:matchTwo(HAT[5],HAT[7],Ho[3],Ho[4]),g:LH},
+   {T:mul(ttr(2.5,hr3),mul([-.5,-hr3,0,hr3,-.5,0],[.5,0,0,0,-.5,0])),g:LH1});
+  const T=meta([pt(0,0),pt(3,0),pt(1.5,3*hr3)],2);T.ch.push({T:[.5,0,.5,0,.5,hr3],g:LT});
+  const P=meta([pt(0,0),pt(4,0),pt(3,2*hr3),pt(-1,2*hr3)],2);P.ch.push({T:[.5,0,1.5,0,.5,hr3],g:LP},{T:mul(ttr(0,2*hr3),mul([.5,hr3,0,-hr3,.5,0],[.5,0,0,0,.5,0])),g:LP});
+  const F=meta([pt(0,0),pt(3,0),pt(3.5,hr3),pt(3,2*hr3),pt(-1,2*hr3)],2);F.ch.push({T:[.5,0,1.5,0,.5,hr3],g:LF},{T:mul(ttr(0,2*hr3),mul([.5,hr3,0,-hr3,.5,0],[.5,0,0,0,.5,0])),g:LF});
+  return[H,T,P,F];
+ }
+ const HRULES=[['H'],[0,0,'P',2],[1,0,'H',2],[2,0,'P',2],[3,0,'H',2],[4,4,'P',2],[0,4,'F',3],[2,4,'F',3],[4,1,3,2,'F',0],[8,3,'H',0],[9,2,'P',0],[10,2,'H',0],[11,4,'P',2],[12,0,'H',2],[13,0,'F',3],[14,2,'F',1],[15,3,'H',4],[8,2,'F',1],[17,3,'H',0],[18,2,'P',0],[19,2,'H',2],[20,4,'F',3],[20,0,'P',2],[22,0,'H',2],[23,4,'F',3],[23,0,'F',3],[16,0,'P',2],[9,4,0,2,'T',2],[4,0,'F',3]];
+ function hatPatch([H,T,P,F]){
+  const ret=meta([],H.width),S={H,T,P,F};
+  for(const r of HRULES){
+   if(r.length===1){ret.ch.push({T:ID,g:S[r[0]]});continue}
+   let P1,Q1,ns,ei;
+   if(r.length===4){const c=ret.ch[r[0]],poly=c.g.shape;P1=tp(c.T,poly[(r[1]+1)%poly.length]);Q1=tp(c.T,poly[r[1]]);ns=S[r[2]];ei=r[3]}
+   else{const cP=ret.ch[r[0]],cQ=ret.ch[r[2]];P1=tp(cQ.T,cQ.g.shape[r[3]]);Q1=tp(cP.T,cP.g.shape[r[1]]);ns=S[r[4]];ei=r[5]}
+   const np=ns.shape;ret.ch.push({T:matchTwo(np[ei],np[(ei+1)%np.length],P1,Q1),g:ns});
+  }
+  return ret;
+ }
+ function hatSuper(patch){
+  const ev=(n,i)=>evalCh(patch,n,i);
+  const bps1=ev(8,2),bps2=ev(21,2),rbps=tp(rotAbout(bps1,-2*PI/3),bps2),p72=ev(7,2),p252=ev(25,2);
+  const llc=isect(bps1,rbps,ev(6,2),p72);let w=psub(ev(6,2),llc);
+  const Ho=[llc,bps1];w=tp(trot(-PI/3),w);Ho.push(padd(Ho[1],w));Ho.push(ev(14,2));w=tp(trot(-PI/3),w);Ho.push(psub(Ho[3],w));Ho.push(ev(6,2));
+  const W=patch.width*2,take=(m,ids)=>{for(const i of ids)m.ch.push({T:patch.ch[i].T,g:patch.ch[i].g});return m};
+  const nH=take(meta(Ho,W),[0,9,16,27,26,6,1,8,10,15]);
+  const nP=take(meta([p72,padd(p72,psub(bps1,llc)),bps1,llc],W),[7,2,3,4,28]);
+  const nF=take(meta([bps2,ev(24,2),ev(25,0),p252,padd(p252,psub(llc,bps1))],W),[21,20,22,23,24,25]);
+  const A=Ho[2],B=padd(Ho[1],psub(Ho[4],Ho[5])),C=tp(rotAbout(B,-PI/3),A);
+  const nT=take(meta([B,C,A],W),[11]);
+  for(const m of[nH,nP,nF,nT])recentre(m);
+  return[nH,nT,nP,nF];
+ }
+ const HATL=[hatBase()];
+ const hatLevel=n=>{while(HATL.length<=n)HATL.push(hatSuper(hatPatch(HATL[HATL.length-1])));return HATL[n]};
+ const HKIND={H:0,T:1,P:2,F:3,H1:4};
+ function hatTiles(R,lev){
+  const top=hatLevel(lev)[0];
+  return leaves(top,pt(0,0),R).map(({T,g})=>({pts:g.pts.map(p=>tp(T,p)),k:HKIND[g.label],o:((Math.round(Math.atan2(T[3],T[0])/(PI/3))%3)+3)%3,r:det(T)<0}));
+ }
+ // Želva = Tile(√3,1): stejná skladba jako klobouk, hrany délky a a b se prohodí
+ function deform(tiles,fa,fb){
+  const K=p=>Math.round(p.x*1e4)+','+Math.round(p.y*1e4),adj=new Map(),pos=new Map();
+  for(const t of tiles){const n=t.pts.length;for(let i=0;i<n;i++){const a=t.pts[i],b=t.pts[(i+1)%n],dx=b.x-a.x,dy=b.y-a.y,f=Math.hypot(dx,dy)<.68?fa:fb,ka=K(a),kb=K(b);
+   if(!adj.has(ka))adj.set(ka,[]);if(!adj.has(kb))adj.set(kb,[]);adj.get(ka).push([kb,dx*f,dy*f]);adj.get(kb).push([ka,-dx*f,-dy*f])}}
+  for(const s of adj.keys()){if(pos.has(s))continue;pos.set(s,pt(0,0));const q=[s];
+   while(q.length){const u=q.pop(),pu=pos.get(u);for(const[v,dx,dy]of adj.get(u))if(!pos.has(v)){pos.set(v,pt(pu.x+dx,pu.y+dy));q.push(v)}}
+   break}
+  return tiles.filter(t=>t.pts.every(p=>pos.has(K(p)))).map(t=>({...t,pts:t.pts.map(p=>pos.get(K(p)))}));
+ }
+
+ /* ---- Spectre (2023) – substituce podle Smithe, Myerse, Kaplana a Goodman-Strausse ---- */
+ const SP=[[0,0],[1,0],[1.5,-hr3],[1.5+hr3,.5-hr3],[1.5+hr3,1.5-hr3],[2.5+hr3,1.5-hr3],[3+hr3,1.5],[3,2],[3-hr3,1.5],[2.5-hr3,1.5+hr3],[1.5-hr3,1.5+hr3],[.5-hr3,1.5+hr3],[-hr3,1.5],[0,1]].map(([x,y])=>pt(x,y));
+ const SQ=[SP[3],SP[5],SP[7],SP[11]];
+ const sleaf=label=>({leaf:true,label,pts:SP,quad:SQ});
+ const SRULES={Gamma:['Pi','Delta',null,'Theta','Sigma','Xi','Phi','Gamma'],Delta:['Xi','Delta','Xi','Phi','Sigma','Pi','Phi','Gamma'],Theta:['Psi','Delta','Pi','Phi','Sigma','Pi','Phi','Gamma'],Lambda:['Psi','Delta','Xi','Phi','Sigma','Pi','Phi','Gamma'],Xi:['Psi','Delta','Pi','Phi','Sigma','Psi','Phi','Gamma'],Pi:['Psi','Delta','Xi','Phi','Sigma','Psi','Phi','Gamma'],Sigma:['Xi','Delta','Xi','Phi','Sigma','Pi','Lambda','Gamma'],Phi:['Psi','Delta','Psi','Phi','Sigma','Pi','Phi','Gamma'],Psi:['Psi','Delta','Psi','Phi','Sigma','Psi','Phi','Gamma']};
+ function spBase(){const t={};for(const l of['Delta','Theta','Lambda','Xi','Pi','Sigma','Phi','Psi'])t[l]=sleaf(l);
+  t.Gamma={ch:[{T:ID,g:sleaf('Gamma1')},{T:mul(ttr(SP[8].x,SP[8].y),trot(PI/6)),g:sleaf('Gamma2')}],quad:SQ};return t}
+ function spSuper(t){
+  const q=t.Delta.quad,Rf=[-1,0,0,0,1,0],rules=[[60,3,1],[0,2,0],[60,3,1],[60,3,1],[0,2,0],[60,3,1],[-120,3,3]];
+  const Ts=[ID];let ang=0,rot=ID,tq=q.slice();
+  for(const[a,f,to]of rules){if(a){ang+=a;rot=trot(ang*PI/180);tq=q.map(p=>tp(rot,p))}const pf=tp(Ts[Ts.length-1],q[f]);Ts.push(mul(ttr(pf.x-tq[to].x,pf.y-tq[to].y),rot))}
+  const T2=Ts.map(T=>mul(Rf,T)),sq=[tp(T2[6],q[2]),tp(T2[5],q[1]),tp(T2[3],q[2]),tp(T2[0],q[1])],o={};
+  for(const[l,subs]of Object.entries(SRULES))o[l]={ch:subs.map((s,i)=>s&&{T:T2[i],g:t[s]}).filter(Boolean),quad:sq};
+  return o;
+ }
+ const SPL=[spBase()];
+ const spLevel=n=>{while(SPL.length<=n)SPL.push(spSuper(SPL[SPL.length-1]));return SPL[n]};
+ const SKIND={Gamma1:0,Delta:1,Theta:2,Lambda:3,Xi:0,Pi:1,Sigma:2,Phi:3,Psi:0,Gamma2:4};
+ function spTiles(R,lev){
+  const top=spLevel(lev).Delta,c=top.quad.reduce((a,p)=>pt(a.x+p.x/4,a.y+p.y/4),pt(0,0));
+  return{c,list:leaves(top,c,R).map(({T,g})=>{const o=((Math.round(Math.atan2(T[3],T[0])/(PI/6))%12)+12)%12;return{pts:g.pts.map(p=>tp(T,p)),k:SKIND[g.label],o,r:det(T)<0}})};
+ }
+
+ /* ---- kosočtverečná dláždění metodou de Bruijnovy mříže (N=5 Penrose, N=4 Ammann–Beenker…) ---- */
+ const GAM={4:[.137,.251,.389,.433],5:[.1,.3,-.25,.05,-.2],6:[.113,.271,.347,.419,.053,.191],7:[.11,.27,.35,.43,.05,.19,.31],8:[.11,.27,.35,.43,.05,.19,.31,.07]};
+ function rhombTiles(N,R){
+  const e=[...Array(N)].map((_,j)=>pt(Math.cos(PI*j/N),Math.sin(PI*j/N))),g=GAM[N],G=R*2/N+3,K=Math.ceil(G)+2,out=[];
+  for(let r=0;r<N;r++)for(let s=r+1;s<N;s++){const er=e[r],es=e[s],dt=er.x*es.y-er.y*es.x,d=s-r,t=Math.min(d,N-d);
+   for(let kr=-K;kr<=K;kr++)for(let ks=-K;ks<=K;ks++){const a=kr+g[r],b=ks+g[s],x=(a*es.y-b*er.y)/dt,y=(er.x*b-es.x*a)/dt;if(Math.hypot(x,y)>G)continue;
+    let vx=0,vy=0;for(let j=0;j<N;j++){const k=j===r?kr:j===s?ks:Math.ceil(x*e[j].x+y*e[j].y-g[j]);vx+=k*e[j].x;vy+=k*e[j].y}
+    const p0=pt(vx,vy),p1=padd(p0,er),p2=padd(p1,es),p3=padd(p0,es);
+    if(Math.hypot((p0.x+p2.x)/2,(p0.y+p2.y)/2)>R)continue;
+    out.push({pts:[p0,p1,p2,p3],k:t-1,o:r*N+s,r:false})}}
+  return out;
+ }
+ /* ---- Větrník (pinwheel, Conway a Radin 1994): pravoúhlý trojúhelník 1 : 2 ---- */
+ function pinTiles(R){
+  let n=0;while(Math.pow(5,n/2)<2*R+4)n++;const L=Math.pow(5,n/2);
+  let T=[[pt(L,-L/2),pt(L,L/2),pt(-L,-L/2)],[pt(-L,L/2),pt(-L,-L/2),pt(L,L/2)]];// [pravý úhel, konec krátké odvěsny, konec dlouhé]
+  const keep=tr=>{const cx=(tr[0].x+tr[1].x+tr[2].x)/3,cy=(tr[0].y+tr[1].y+tr[2].y)/3,r=Math.max(...tr.map(p=>Math.hypot(p.x-cx,p.y-cy)));return Math.hypot(cx,cy)-r<=R+3};
+  const mid=(a,b)=>pt((a.x+b.x)/2,(a.y+b.y)/2);
+  for(let i=0;i<n;i++){const N=[];for(const[Rv,S,Lg]of T){const H=pt(S.x+(Lg.x-S.x)/5,S.y+(Lg.y-S.y)/5),Ms=mid(H,Rv),Ml=mid(H,Lg),Mh=mid(Rv,Lg);
+    for(const c of[[H,S,Rv],[Ms,Rv,Mh],[Ml,Mh,Lg],[Ms,H,Mh],[Ml,Mh,H]])if(keep(c))N.push(c)}T=N}
+  return T.map(([Rv,S,Lg])=>{const cr=(S.x-Rv.x)*(Lg.y-Rv.y)-(S.y-Rv.y)*(Lg.x-Rv.x),a=Math.atan2(Lg.y-Rv.y,Lg.x-Rv.x);
+   return{pts:[Rv,S,Lg],k:cr>0?0:1,o:((Math.floor((a+PI)/(2*PI)*12))%12+12)%12,r:cr<0}});
+ }
+
+ /* ---- přehled druhů ---- */
+ const rk=N=>{const a=[];for(let t=1;t<=N>>1;t++){const d=Math.round(t*180/N);a.push(d===90?'Čtverec':`Kosočtverec ${d}°`)}return a};
+ const TM=1.3;// želva: kolik větší oblast kloboukové předlohy
+ const HATK=['Skupina H','Skupina T','Skupina P','Skupina F','Zrcadlené'];
+ const TYPES={
+  hat:{name:'Klobouk (einstein, 2023)',special:4,about:'Jediný třináctiúhelník, který pokryje celou plochu, ale nikdy se neopakuje. Objevil ho David Smith v roce 2022. Zrcadlené klobouky jsou vzácnější – mají vlastní barvu.',kinds:HATK,make:(R,l)=>({c:pt(0,0),list:hatTiles(R,l)}),levels:[1,9],ext:l=>rad(hatLevel(l)[0])},
+  turtle:{name:'Želva (2023)',special:4,about:'Sourozenec klobouku ze stejného objevu: skládá se úplně stejně, jen má prohozené délky hran.',kinds:HATK,make:(R,l)=>({list:deform(hatTiles(R*TM,l),Math.sqrt(3),1/Math.sqrt(3))}),levels:[1,9],ext:l=>rad(hatLevel(l)[0])/TM},
+  spectre:{name:'Spectre (2023)',special:4,about:'Čtrnáctiúhelník, který se neopakuje a nepotřebuje ani svůj zrcadlový obraz. Se zakřivenými hranami jde skládat jen jedním směrem. Pootočené dlaždice jsou vzácné.',kinds:['Skupina 1','Skupina 2','Skupina 3','Skupina 4','Pootočené'],make:spTiles,levels:[1,9],curve:true,ext:l=>{const t=spLevel(l).Delta;return rad(t)-Math.hypot(...t.quad.reduce((a,p)=>[a[0]+p.x/4,a[1]+p.y/4],[0,0]))}},
+  penrose:{name:'Penrose (1974)',about:'Klasika Rogera Penrose: tlustý a tenký kosočtverec s pětičetnou souměrností.',kinds:rk(5),make:R=>({c:pt(0,0),list:rhombTiles(5,R)})},
+  ammann:{name:'Ammann–Beenker (osmičetné)',about:'Čtverce a kosočtverce s osmičetnou souměrností (Robert Ammann, F. P. M. Beenker).',kinds:rk(4),make:R=>({c:pt(0,0),list:rhombTiles(4,R)})},
+  dodeca:{name:'Dvanáctičetné květy',about:'Tři druhy kosočtverců s dvanáctičetnou souměrností – skládají se do hvězdicových květů.',kinds:rk(6),make:R=>({c:pt(0,0),list:rhombTiles(6,R)})},
+  hepta:{name:'Sedmičetné',about:'Tři kosočtverce se sedmičetnou souměrností – vzor, který v přírodě nenajdete.',kinds:rk(7),make:R=>({c:pt(0,0),list:rhombTiles(7,R)})},
+  pinwheel:{name:'Větrník (pinwheel, 1994)',about:'Pravoúhlý trojúhelník se stranami 1 : 2 (John Conway a Charles Radin). Dlaždice se natáčejí do nekonečně mnoha směrů.',kinds:['Levotočivé','Pravotočivé'],make:R=>({c:pt(0,0),list:pinTiles(R)})}
+ };
+ const diam=ps=>{let m=0;for(const a of ps)for(const b of ps)m=Math.max(m,Math.hypot(a.x-b.x,a.y-b.y));return m};
+ // měřítko: „velikost“ = průměr klobouku; ostatní vzory mají při stejné velikosti stejnou průměrnou plochu dlaždice
+ const REF={};
+ function refS(type){if(REF[type])return REF[type];const T=TYPES[type],r=T.make(6,T.levels?T.levels[0]:0);let m=0,d=0;for(const t of r.list){m+=Math.sqrt(Math.abs(area(t.pts)));d=Math.max(d,diam(t.pts))}return REF[type]={s:m/r.list.length,d}}
+ const unitOf=type=>refS(type).s*refS('hat').d/refS('hat').s;
+ const area=ps=>{let a=0;for(let i=0;i<ps.length;i++){const p=ps[i],q=ps[(i+1)%ps.length];a+=p.x*q.y-q.x*p.y}return a/2};
+ function centroid(ps){let a=0,cx=0,cy=0;for(let i=0;i<ps.length;i++){const p=ps[i],q=ps[(i+1)%ps.length],c=p.x*q.y-q.x*p.y;a+=c;cx+=(p.x+q.x)*c;cy+=(p.y+q.y)*c}return pt(cx/(3*a),cy/(3*a))}
+ function pip(ps,x,y){let c=false;for(let i=0,j=ps.length-1;i<ps.length;j=i++){const a=ps[i],b=ps[j];if((a.y>y)!==(b.y>y)&&x<(b.x-a.x)*(y-a.y)/(b.y-a.y)+a.x)c=!c}return c}
+ function index(tiles,cell){const G=new Map(),k=(i,j)=>i+','+j;for(let n=0;n<tiles.length;n++){const t=tiles[n];
+   for(let i=Math.floor(t.bb[0]/cell);i<=Math.floor(t.bb[2]/cell);i++)for(let j=Math.floor(t.bb[1]/cell);j<=Math.floor(t.bb[3]/cell);j++){const kk=k(i,j);if(!G.has(kk))G.set(kk,[]);G.get(kk).push(n)}}
+  return(x,y)=>{const l=G.get(k(Math.floor(x/cell),Math.floor(y/cell)));if(l)for(const n of l){const t=tiles[n];if(x>=t.bb[0]&&x<=t.bb[2]&&y>=t.bb[1]&&y<=t.bb[3]&&pip(t.p,x,y))return n}return -1}}
+ /* vygeneruje dlaždice v cm pro oblast archu [−mg, W+mg] × [−mg, H+mg]; střed dláždění je ve středu archu */
+ function generate(type,size,rotDeg,W,H,mg){
+  const T=TYPES[type],f=size/unitOf(type),ca=Math.cos(rotDeg*PI/180),sa=Math.sin(rotDeg*PI/180),hw=W/2+mg,hh=H/2+mg,R=(Math.hypot(hw,hh)+size)/f;
+  const[l0,l1]=T.levels||[0,0];let res=null;
+  for(let lev=l0;lev<=l1;lev++){
+   if(T.ext&&lev<l1&&T.ext(lev)<R*.7)continue;
+   const raw=T.make(R,lev);let c=raw.c;
+   if(!c){let sx=0,sy=0;for(const t of raw.list){const q=centroid(t.pts);sx+=q.x;sy+=q.y}c=pt(sx/raw.list.length,sy/raw.list.length)}
+   const map=p=>{const x=(p.x-c.x)*f,y=(p.y-c.y)*f;return pt(W/2+x*ca-y*sa,H/2+x*sa+y*ca)};
+   const tiles=[];
+   for(const t of raw.list){const p=t.pts.map(map);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const q of p){x0=Math.min(x0,q.x);y0=Math.min(y0,q.y);x1=Math.max(x1,q.x);y1=Math.max(y1,q.y)}
+    if(x1<-mg||y1<-mg||x0>W+mg||y0>H+mg)continue;
+    const ce=centroid(p),a=area(p);tiles.push({p,k:t.k,o:t.o,r:t.r,a:Math.atan2(p[1].y-p[0].y,p[1].x-p[0].x),bb:[x0,y0,x1,y1],cx:ce.x,cy:ce.y,s:Math.sqrt(Math.abs(a)),
+     key:Math.round(ce.x*10)+','+Math.round(ce.y*10)})}
+   const hit=index(tiles,size);
+   // kontrola pokrytí: mřížka bodů přes celou oblast
+   let ok=true;const n=36;
+   for(let i=0;i<=n&&ok;i++)for(let j=0;j<=n;j++){const x=-mg+(W+2*mg)*i/n,y=-mg+(H+2*mg)*j/n;if(hit(x+1e-4*i,y+1.3e-4*j)<0){ok=false;break}}
+   res={tiles,hit,ok,level:lev};
+   if(ok||tiles.length>250000)break;
+  }
+  return res;
+ }
+ return{TYPES,generate,pip};
+})();
+/* =============== aperiodické dláždění – v aplikaci =============== */
+const AP_PAL=['#aad4cb','#f3dfb8','#d5ebe5','#fbf6ec','#c8102e'];
+const newAp=()=>({type:'none',size:6,rot:0,lw:1.5,lc:'#ffffff',curve:true,cm:'kind',md:60,ms:70,mrot:false,clip:false,seed:1,kinds:{},pt:{}});
+const apOn=()=>!!(doc.ap&&APG.TYPES[doc.ap.type]);
+const BR={mode:'off',c:'#c8102e',m:'none'};
+function apKinds(){const A=doc.ap,T=APG.TYPES[A.type],n=T.kinds.length;let K=A.kinds[A.type];
+ if(!Array.isArray(K)||K.length!==n){K=T.kinds.map((_,i)=>({c:AP_PAL[T.special===i?4:i%4],m:i?'none':'rand'}));A.kinds[A.type]=K}return K}
+let apCache=null;
+function apGen(){
+ const A=doc.ap,ex=doc.ex,key=[A.type,A.size,A.rot,ex.pw,ex.ph].join('|');if(apCache&&apCache.key===key)return apCache;
+ const lim=Math.sqrt((ex.pw+10)*(ex.ph+10)/(120000*.35));let size=Math.max(.5,+A.size||6);const capped=size<lim;if(capped)size=+lim.toFixed(1);
+ const r=APG.generate(A.type,size,+A.rot||0,+ex.pw,+ex.ph,5);let sref=0;for(const t of r.tiles)sref=Math.max(sref,t.s);
+ return apCache={key,...r,size,capped,sref};
+}
+function hh(i,s,salt){let t=Math.imul(i+1,0x9E3779B1)^Math.imul((s|0)+salt*7919,0x85EBCA77);t^=t>>>15;t=Math.imul(t,0x2C1B3C6D);t^=t>>>12;t=Math.imul(t,0x297A2D39);t^=t>>>15;return(t>>>0)/4294967296}
+const apKey=t=>doc.ap.type+':'+t.key;
+function apColor(t,i,K){
+ const o=doc.ap.pt[apKey(t)];if(o&&o.c)return o.c;
+ const A=doc.ap,sp=APG.TYPES[A.type].special,n=K.length,m=sp!=null?n-1:n;
+ if(A.cm==='kind')return K[t.k].c;
+ if(sp!=null&&t.k===sp)return K[sp].c;
+ return A.cm==='orient'?K[t.o%m].c:K[Math.floor(hh(i,A.seed,1)*m)].c;
+}
+function apContent(t,i,K){const o=doc.ap.pt[apKey(t)];if(o&&o.m!=null)return o.m;const m=K[t.k].m;if(!m||m==='none')return'none';return hh(i,doc.ap.seed,2)<doc.ap.md/100?m:'none'}
+function apPath(t,cv){
+ if(t.path&&t.pc===cv)return t.path;const P=new Path2D(),p=t.p,n=p.length;P.moveTo(p[0].x,p[0].y);
+ for(let i=0;i<n;i++){const a=p[i],b=p[(i+1)%n];if(cv){const dx=b.x-a.x,dy=b.y-a.y,k=.2;P.bezierCurveTo(a.x+dx/3-dy*k,a.y+dy/3+dx*k,a.x+2*dx/3+dy*k,a.y+2*dy/3-dx*k,b.x,b.y)}else P.lineTo(b.x,b.y)}
+ P.closePath();t.path=P;t.pc=cv;return P;
+}
+/* vykreslí dláždění: k = px na cm, (ox, oy) = kde na plátně je levý horní roh archu */
+function drawAp(x,k,ox,oy,hover=-1){
+ const G=apGen(),A=doc.ap,K=apKinds(),W=x.canvas.width,H=x.canvas.height,cv=!!(A.curve&&APG.TYPES[A.type].curve);
+ const v=[-ox/k,-oy/k,(W-ox)/k,(H-oy)/k],inV=(b,m)=>!(b[2]<v[0]-m||b[0]>v[2]+m||b[3]<v[1]-m||b[1]>v[3]+m);
+ const lw=Math.max(0,+A.lw||0)/10,seam=1/k,vis=[];
+ x.save();x.setTransform(k,0,0,k,ox,oy);if(doc.bw)x.filter='grayscale(1)';x.lineJoin='round';
+ for(let i=0;i<G.tiles.length;i++){const t=G.tiles[i];if(!inV(t.bb,0))continue;vis.push(t);const P=apPath(t,cv),c=apColor(t,i,K);x.fillStyle=c;x.fill(P);if(lw<seam){x.strokeStyle=c;x.lineWidth=seam;x.stroke(P)}}
+ const mots=doc.layers.filter(l=>l.vis),byKey={};for(const l of doc.layers)byKey[l.key]=l;
+ const maxW=Math.max(.01,...mots.map(l=>l.w));
+ const motifs=()=>{if(!mots.length)return;const mg=G.size*Math.max(1,A.ms/100)*1.5;
+  for(let i=0;i<G.tiles.length;i++){const t=G.tiles[i];if(!inV(t.bb,mg))continue;const m=apContent(t,i,K);if(m==='none')continue;
+   const l=m==='rand'?mots[Math.floor(hh(i,A.seed,3)*mots.length)]:byKey[m];if(!l||!l.vis)continue;
+   const F=fxOf(l),w=G.size*A.ms/100*(t.s/G.sref)*(l.w/maxW),s=w/F.cw,dw=F.c.width*s,dh=F.c.height*s;
+   x.save();if(A.clip)x.clip(apPath(t,cv));x.globalAlpha=l.op;x.translate(t.cx,t.cy);x.rotate((l.rot+(A.mrot?t.a*180/Math.PI:0))*Math.PI/180);if(l.flip)x.scale(-1,1);
+   x.drawImage(F.c,-dw/2,-dh/2,dw,dh);x.restore()}};
+ if(A.clip)motifs();
+ if(lw>=seam){x.strokeStyle=A.lc;x.lineWidth=lw;for(const t of vis)x.stroke(apPath(t,cv))}
+ if(!A.clip)motifs();
+ if(hover>=0&&G.tiles[hover]){x.filter='none';const P=apPath(G.tiles[hover],cv);x.strokeStyle='#fff';x.lineWidth=5/k;x.stroke(P);x.strokeStyle='#c8102e';x.lineWidth=2.5/k;x.stroke(P)}
+ x.restore();
+}
+/* panel Dlaždice v aperiodickém režimu */
+function apUI(){
+ const ap=apOn();
+ document.querySelectorAll('[data-noap]').forEach(e=>e.hidden=ap);document.querySelectorAll('[data-aponly]').forEach(e=>e.hidden=!ap);
+ $('ed').hidden=ap||view!=='edit';$('pv').hidden=!ap&&view==='edit';$('dimL').hidden=ap||view!=='edit';$('viewSeg').hidden=ap;$('gridL').hidden=ap;$('apTip').hidden=!ap;$('tileTip').hidden=ap||mode!=='tile';
+ const box=$('apKinds');if(!ap){box.innerHTML='';box.dataset.sig='';return}
+ const A=doc.ap,T=APG.TYPES[A.type],K=apKinds(),G=apGen();
+ $('apAbout').textContent=T.about;document.querySelectorAll('[data-apcurve]').forEach(e=>e.hidden=!T.curve);
+ $('apInfo').innerHTML=`Na archu ${fmt(doc.ex.pw)} × ${fmt(doc.ex.ph)} cm je ${G.tiles.length.toLocaleString('cs-CZ')} dlaždic a žádná část vzoru se neopakuje. Rozměr archu je stejný jako v Exportu.`+(G.capped?`<br><b style="color:var(--acc)">Tak malé dlaždice by byly na archu příliš početné – použije se ${fmt(G.size)} cm.</b>`:'')+(G.ok?'':'<br><b style="color:var(--acc)">Dláždění nepokrylo celý arch – zvětšete dlaždice.</b>');
+ const opts=[['none','Prázdná'],['rand','Náhodný motiv z vrstev'],...doc.layers.map(l=>[l.key,l.name||'Vrstva'])],sig=A.type+'|'+opts.map(o=>o.join(':')).join('|');
+ if(box.dataset.sig!==sig){box.dataset.sig=sig;const ol=opts.map(([v,t])=>`<option value="${esc(v)}">${esc(t)}</option>`).join('');
+  box.innerHTML=T.kinds.map((n,i)=>`<div class="kindrow"><input type="color" data-kc="${i}" title="Barva – ${esc(n)}"><span>${esc(n)}</span><select data-km="${i}" title="Obsah dlaždic – ${esc(n)}">${ol}</select></div>`).join('');
+  const bm=$('brM');bm.innerHTML=ol;if(!opts.some(o=>o[0]===BR.m))BR.m='none';bm.value=BR.m}
+ box.querySelectorAll('[data-kc]').forEach(el=>writeEl(el,K[+el.dataset.kc].c));
+ box.querySelectorAll('[data-km]').forEach(el=>{if(el!==document.activeElement)el.value=K[+el.dataset.km].m});
+ const n=Object.keys(A.pt).filter(k=>k.startsWith(A.type+':')).length;$('apClear').disabled=!n;$('apClear').textContent=n?`Zrušit ruční úpravy (${n})`:'Žádné ruční úpravy';
+}
+/* štětec na jednotlivé dlaždice v náhledu archu */
+function svPt(e){const r=$('pv').getBoundingClientRect(),d=SV.d||1;return{x:((e.clientX-r.left)*d-SV.ox)/SV.s,y:((e.clientY-r.top)*d-SV.oy)/SV.s,sx:e.clientX-r.left,sy:e.clientY-r.top}}
+function apPaint(p){
+ const G=apGen(),i=G.hit(p.x,p.y);if(i<0)return;const key=apKey(G.tiles[i]),P=doc.ap.pt;
+ if(BR.mode==='erase'){if(!P[key])return;delete P[key]}
+ else{const o={...(P[key]||{})};if(BR.mode==='color'){if(o.c===BR.c)return;o.c=BR.c}else{if(o.m===BR.m)return;o.m=BR.m}P[key]=o}
+ SV.painted=true;req();
+}
+
 /* =============== dokument =============== */
 const DEF_FX={hue:0,bri:100,sat:100,gray:false,ol:0,olc:'#ffffff',sh:0,sho:.35};
 const DEF_REP={mode:'one',cols:3,rows:3,half:true,n:12,rv:0,sv:0,rf:false,seed:1};
 const DEF_EX={fmt:'pdf',pw:50,ph:70,fit:true,dpi:300,bleed:3,marks:true,reg:true,slug:true,q:'jpg',full:true,pplain:true};
-function newDoc(){return{tw:20,th:20,bg:{type:'solid',c1:'#c8102e',c2:'#ffffff',n:8,size:40,transp:false},ov:{h:'none',v:'none'},layers:[],ex:{...DEF_EX}}}
+function newDoc(){return{tw:20,th:20,bg:{type:'solid',c1:'#c8102e',c2:'#ffffff',n:8,size:40,transp:false},ov:{h:'none',v:'none'},layers:[],ex:{...DEF_EX},ap:newAp()}}
 let doc=newDoc(),sel=-1,laySeq=0,imgSeq=0;
 const IMG={};// id -> {name, vers:[canvas], hits:[], ver, urls:[]}
 const L=()=>doc.layers[sel];
-function normLayer(l){if(l.type==='shape'){l.shape={stroke:'#2a211b',sw:0,ar:1,...l.shape};if(!(l.shape.k in SHAPES))l.shape.k='circle'}l.fx={...DEF_FX,...(l.fx||{})};l.rep={...DEF_REP,...(l.rep||{})};if(l.op==null)l.op=1;if(l.vis==null)l.vis=true;if(!l.id)l.id=++laySeq;return l}
+function normLayer(l){if(l.type==='shape'){l.shape={stroke:'#2a211b',sw:0,ar:1,...l.shape};if(!(l.shape.k in SHAPES))l.shape.k='circle'}l.fx={...DEF_FX,...(l.fx||{})};l.rep={...DEF_REP,...(l.rep||{})};if(l.op==null)l.op=1;if(l.vis==null)l.vis=true;if(!l.id)l.id=++laySeq;if(!l.key)l.key=Math.random().toString(36).slice(2,10);return l}
 
 /* =============== obrázky =============== */
 function hitMap(c){const s=Math.min(1,200/Math.max(c.width,c.height)),h=mk(c.width*s,c.height*s),x=h.getContext('2d');x.drawImage(c,0,0,h.width,h.height);return{w:h.width,h:h.height,d:x.getImageData(0,0,h.width,h.height).data}}
@@ -659,7 +951,9 @@ ed.addEventListener('wheel',e=>{
  zoomAt(e.deltaY<0?1.15:1/1.15,toCm(e));
 },{passive:false});
 function zoomAt(f,p){
- if(view==='sheet'){SV.zoom=clamp(SV.zoom*f,1,8);req();return}
+  if(view==='sheet'||apOn()){const cv=$('pv'),nz=clamp(SV.zoom*f,1,20),d=SV.d||1;if(!p)p={sx:cv.clientWidth/2,sy:cv.clientHeight/2};
+   if(SV.s){const X=(p.sx*d-SV.ox)/SV.s,Y=(p.sy*d-SV.oy)/SV.s,s2=SV.s*nz/SV.zoom;SV.px=(p.sx*d-X*s2-(cv.width-doc.ex.pw*s2)/2)/d;SV.py=(p.sy*d-Y*s2-(cv.height-doc.ex.ph*s2)/2)/d}
+   SV.zoom=nz;if(nz===1)SV.px=SV.py=0;req();return}
  const nz=clamp(E.zoom*f,.15,12);if(!p){const cv=$('ed');p={sx:cv.clientWidth/2,sy:cv.clientHeight/2}}const before={x:(p.sx-E.ox)/E.s,y:(p.sy-E.oy)/E.s};
  E.zoom=nz;edFrame();E.px+=p.sx-(E.ox+before.x*E.s);E.py+=p.sy-(E.oy+before.y*E.s);req();
 }
@@ -670,9 +964,11 @@ function exGeom(ex){let tw=doc.tw,th=doc.th,tx=1,ty=1;if(ex.fit&&ex.fmt!=='tile'
 function drawSheet(){
  const cv=$('pv'),d=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;cv.width=Math.round(W*d);cv.height=Math.round(H*d);
  const x=cv.getContext('2d'),ex=doc.ex,G=exGeom(ex);x.fillStyle=isDark()?'#16120f':'#e9dcc6';x.fillRect(0,0,cv.width,cv.height);
- const s=Math.min((W-40)/ex.pw,(H-40)/ex.ph)*SV.zoom*d,pw=ex.pw*s,ph=ex.ph*s,ox=Math.max(20*d,(cv.width-pw)/2),oy=Math.max(20*d,(cv.height-ph)/2);
- const t=renderTile(Math.min(s,5000/Math.max(G.tw,G.th)),G.tw,G.th);
- x.save();x.shadowColor='rgba(60,30,10,.35)';x.shadowBlur=24*d;x.shadowOffsetY=6*d;x.fillStyle='#fff';x.fillRect(ox,oy,pw,ph);x.restore();
+   const s=Math.min((W-40)/ex.pw,(H-40)/ex.ph)*SV.zoom*d,pw=ex.pw*s,ph=ex.ph*s,ox=(cv.width-pw)/2+(SV.px||0)*d,oy=(cv.height-ph)/2+(SV.py||0)*d;
+  SV.s=s;SV.ox=ox;SV.oy=oy;SV.d=d;
+  x.save();x.shadowColor='rgba(60,30,10,.35)';x.shadowBlur=24*d;x.shadowOffsetY=6*d;x.fillStyle='#fff';x.fillRect(ox,oy,pw,ph);x.restore();
+  if(apOn()){x.save();x.beginPath();x.rect(ox,oy,pw,ph);x.clip();drawAp(x,s,ox,oy,SV.hover??-1);x.restore();$('zoomTxt').textContent=Math.round(SV.zoom*100)+' %';return}
+  const t=renderTile(Math.min(s,5000/Math.max(G.tw,G.th)),G.tw,G.th);
  if(doc.bg.transp){x.save();x.beginPath();x.rect(ox,oy,pw,ph);x.clip();checker(x,cv.width,cv.height,8*d);x.restore()}
  const pat=x.createPattern(t,'repeat');pat.setTransform(new DOMMatrix().translate(ox,oy).scale(G.tw*s/t.width,G.th*s/t.height));x.fillStyle=pat;x.fillRect(ox,oy,pw,ph);
  if($('grid').checked){x.save();x.strokeStyle='rgba(255,255,255,.9)';x.setLineDash([6*d,4*d]);x.lineWidth=d;x.shadowColor='rgba(0,0,0,.7)';x.shadowBlur=2*d;
@@ -729,16 +1025,20 @@ function syncInspector(){
   if(l.type==='image')$('rstbg').disabled=IMG[l.img].ver===0;if(l.type==='shape'){$('arRow').hidden=l.shape.k in SH_AR;$('bubNote').hidden=!['speech','thought','shout'].includes(l.shape.k)}}
  document.querySelectorAll('[data-d]').forEach(el=>writeEl(el,gp(doc,el.dataset.d)));
  const bt=doc.bg.type;document.querySelectorAll('[data-bgx]').forEach(e=>e.hidden=bt==='solid');document.querySelectorAll('[data-bgdots]').forEach(e=>e.hidden=bt!=='dots');
- document.querySelectorAll('#dlgExport [data-x]').forEach(el=>writeEl(el,doc.ex[el.dataset.x]));
+ document.querySelectorAll('[data-x]').forEach(el=>writeEl(el,doc.ex[el.dataset.x]));
+ apUI();
 }
 document.addEventListener('input',e=>{
- const el=e.target,v=readEl(el);if(v===undefined)return;
+ const el=e.target;
+ if(el.dataset.kc!=null){apKinds()[+el.dataset.kc].c=el.value;req();return}
+ if(el.dataset.km!=null){apKinds()[+el.dataset.km].m=el.value;req();return}
+ const v=readEl(el);if(v===undefined)return;
  if(el.dataset.k==='shape.k'){const l=L();if(l){const d=SH_DEF[v]||{};if(d.ar&&(l.shape.ar||1)===1)l.shape.ar=d.ar;l.name=SHAPES[v]}}
  if(el.dataset.k){const l=L();if(!l)return;sp(l,el.dataset.k,el.dataset.k==='rep.cols'||el.dataset.k==='rep.rows'||el.dataset.k==='rep.n'?Math.max(1,Math.round(v)):v);refreshAll()}
  else if(el.dataset.d){sp(doc,el.dataset.d,(el.dataset.d==='tw'||el.dataset.d==='th')?Math.max(2,v):v);refreshAll();if($('dlgExport').open)exPreview()}
- else if(el.dataset.x){doc.ex[el.dataset.x]=el.dataset.x==='dpi'?+v:v;document.querySelectorAll(`#dlgExport [data-x="${el.dataset.x}"]`).forEach(o=>{if(o!==el)writeEl(o,doc.ex[el.dataset.x])});if(el.dataset.x==='pw'||el.dataset.x==='ph')$('exPreset').value='';exPreview();req()}
+ else if(el.dataset.x){doc.ex[el.dataset.x]=el.dataset.x==='dpi'?+v:v;document.querySelectorAll(`[data-x="${el.dataset.x}"]`).forEach(o=>{if(o!==el)writeEl(o,doc.ex[el.dataset.x])});if(el.dataset.x==='pw'||el.dataset.x==='ph')$('exPreset').value='';if($('dlgExport').open)exPreview();refreshAll()}
 });
-document.addEventListener('change',e=>{if(e.target.dataset.k||e.target.dataset.d||e.target.dataset.x)push()});
+document.addEventListener('change',e=>{const ds=e.target.dataset;if(ds.k||ds.d||ds.x||ds.kc!=null||ds.km!=null)push()});
 for(const[id,ax]of[['px','u'],['py','v']])$(id).addEventListener('input',e=>{const l=L(),v=parseFloat(e.target.value);if(!l||isNaN(v))return;l[ax]=(((v/(ax==='u'?doc.tw:doc.th))%1)+1)%1;req()}),$(id).addEventListener('change',push);
 $('tLayer').onclick=()=>setMode('layer');
 $('tTile').onclick=()=>setMode('tile');
@@ -759,7 +1059,7 @@ pop.addEventListener('click',e=>{const b=e.target.closest('button[data-s]');if(!
  addLayer({type:'shape',name:SHAPES[k],shape:{k,color:'#ffffff',stroke:'#2a211b',sw:0,ar:1,...(SH_DEF[k]||{})},w:Math.min(doc.tw,doc.th)*(bub?.3:.2)})});
 document.addEventListener('click',e=>{if(!pop.hidden&&!pop.contains(e.target)&&e.target!==$('addShape'))pop.hidden=true});
 $('file').addEventListener('change',e=>{loadFiles([...e.target.files]);e.target.value=''});
-function dupLayer(){const l=L();if(!l)return;const c=JSON.parse(JSON.stringify(l));c.id=++laySeq;c.u=(l.u+.5)%1;c.v=(l.v+.5)%1;c.name=(l.name||'Vrstva')+' – kopie';c.lock=false;doc.layers.splice(sel+1,0,c);sel++;push();refreshAll()}
+function dupLayer(){const l=L();if(!l)return;const c=JSON.parse(JSON.stringify(l));c.id=++laySeq;c.key=Math.random().toString(36).slice(2,10);c.u=(l.u+.5)%1;c.v=(l.v+.5)%1;c.name=(l.name||'Vrstva')+' – kopie';c.lock=false;doc.layers.splice(sel+1,0,c);sel++;push();refreshAll()}
 function delLayer(){if(!L())return;doc.layers.splice(sel,1);sel=Math.min(sel,doc.layers.length-1);push();refreshAll();msg('Vrstva odebrána. Vrátit jde přes Zpět (Ctrl+Z).')}
 $('lDup').onclick=dupLayer;$('lDel').onclick=delLayer;
 $('lCenter').onclick=()=>{const l=L();l.u=.5;l.v=.5;push();refreshAll()};
@@ -798,7 +1098,7 @@ async function deserialize(txt){
  const load=src=>new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(new Error('obrázek v projektu je poškozený'));i.src=src});
  const map={};
  for(const[k,v]of Object.entries(o.images||{})){const a=fromSource(await load(v.orig)),b=v.cur?fromSource(await load(v.cur)):null;map[k]=addImage(a,v.name,b);IMG[map[k]].urls[0]=v.orig;if(b)IMG[map[k]].urls[1]=v.cur}
- const d=o.doc;d.ex={...DEF_EX,...(d.ex||{})};d.bg={...newDoc().bg,...(d.bg||{})};d.ov={h:'none',v:'none',...(d.ov||{})};
+ const d=o.doc;d.ex={...DEF_EX,...(d.ex||{})};d.bg={...newDoc().bg,...(d.bg||{})};d.ov={h:'none',v:'none',...(d.ov||{})};d.ap={...newAp(),...(d.ap||{})};if(!d.ap.kinds||typeof d.ap.kinds!=='object')d.ap.kinds={};if(!d.ap.pt||typeof d.ap.pt!=='object')d.ap.pt={};
  d.layers=d.layers.map(l=>normLayer({...l,id:++laySeq,img:l.type==='image'?map[l.img]:undefined})).filter(l=>l.type!=='image'||l.img);
  doc=d;sel=-1;curName=o.name||curName;hist=[];fut=[];push();dirty=false;title();E.zoom=1;E.px=E.py=0;refreshAll();
 }
@@ -898,11 +1198,11 @@ async function buildPdf(ex,prog){
  const g=pdfLayout(ex),G=exGeom(ex),pxmm=ex.dpi/25.4,mm=72/25.4,f3=v=>(+v).toFixed(3);
  const ax=ex.full?0:g.m-g.b,aw=ex.full?g.W:g.tw+2*g.b,ah=ex.full?g.H:g.th+2*g.b,off=(g.m-ax)*pxmm;
  const imgW=Math.round(aw*pxmm),imgH=Math.round(ah*pxmm);
- const tile=renderTile(ex.dpi/2.54,G.tw,G.th,{white:true});
+   const ap=apOn(),tile=ap?null:renderTile(ex.dpi/2.54,G.tw,G.th,{white:true});
  const stripH=Math.max(64,Math.floor(2e7/imgW)),n=Math.ceil(imgH/stripH),imgs=[];
  for(let k=0;k<n;k++){
   const y0=k*stripH,h=Math.min(imgH-y0,stripH+(k<n-1?2:0)),c=mk(imgW,h),x=c.getContext('2d');
-  x.fillStyle='#fff';x.fillRect(0,0,imgW,h);const pat=x.createPattern(tile,'repeat');pat.setTransform(new DOMMatrix().translate(off,off-y0).scale(G.tw*ex.dpi/2.54/tile.width,G.th*ex.dpi/2.54/tile.height));x.fillStyle=pat;x.fillRect(0,0,imgW,h);
+  x.fillStyle='#fff';x.fillRect(0,0,imgW,h);if(ap)drawAp(x,ex.dpi/2.54,off,off-y0);else{const pat=x.createPattern(tile,'repeat');pat.setTransform(new DOMMatrix().translate(off,off-y0).scale(G.tw*ex.dpi/2.54/tile.width,G.th*ex.dpi/2.54/tile.height));x.fillStyle=pat;x.fillRect(0,0,imgW,h)}
   let bytes,filter;
   if(doc.bw){const d=x.getImageData(0,0,imgW,h).data,gr=new Uint8Array(imgW*h);for(let i=0,j=0;i<d.length;i+=4)gr[j++]=Math.round(d[i]*.299+d[i+1]*.587+d[i+2]*.114);
    bytes=new Uint8Array(await new Response(new Blob([gr]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer());filter='FlateDecode'}
@@ -942,7 +1242,7 @@ async function buildPdf(ex,prog){
 
 /* =============== exportní dialog =============== */
 function exPreview(){
- const ex=doc.ex;document.querySelectorAll('input[name=exfmt]').forEach(r=>r.checked=r.value===ex.fmt);
+  const ex=doc.ex;if(apOn()&&ex.fmt==='tile')ex.fmt='png';document.querySelectorAll('input[name=exfmt]').forEach(r=>r.checked=r.value===ex.fmt);
  $('exPdf').hidden=ex.fmt!=='pdf';$('exSheet').hidden=ex.fmt==='tile';
  const box=$('exPvBox'),cv=$('exPv'),d=devicePixelRatio||1,G=exGeom(ex),pdf=ex.fmt==='pdf';
  const g=ex.fmt==='tile'?{tw:G.tw*10,th:G.th*10,b:0,m:0,W:G.tw*10,H:G.th*10}:pdfLayout(ex);
@@ -950,10 +1250,11 @@ function exPreview(){
  const paint=(cv,BW,BH,kk,ox,oy)=>{
   cv.width=Math.round(BW*d);cv.height=Math.round(BH*d);cv.style.width=BW+'px';cv.style.height=BH+'px';
   const k=kk*d;ox*=d;oy*=d;const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cv.width,cv.height);
-  const t=renderTile(Math.min(k*10,3000/Math.max(G.tw,G.th)),G.tw,G.th,{white:pdf});
-  if(doc.bg.transp&&!pdf)checker(x,cv.width,cv.height,6*d);
-  const pat=x.createPattern(t,'repeat');pat.setTransform(new DOMMatrix().translate(ox+g.m*k,oy+g.m*k).scale(G.tw*10*k/t.width,G.th*10*k/t.height));
-  x.fillStyle=pat;x.fillRect(0,0,cv.width,cv.height);
+     if(apOn())drawAp(x,10*k,ox+g.m*k,oy+g.m*k);else{
+   const t=renderTile(Math.min(k*10,3000/Math.max(G.tw,G.th)),G.tw,G.th,{white:pdf});
+   if(doc.bg.transp&&!pdf)checker(x,cv.width,cv.height,6*d);
+   const pat=x.createPattern(t,'repeat');pat.setTransform(new DOMMatrix().translate(ox+g.m*k,oy+g.m*k).scale(G.tw*10*k/t.width,G.th*10*k/t.height));
+   x.fillStyle=pat;x.fillRect(0,0,cv.width,cv.height)}
   x.fillStyle=isDark()?'rgba(27,23,20,.72)':'rgba(246,239,228,.72)';x.beginPath();x.rect(0,0,cv.width,cv.height);x.rect(ox,oy,g.W*k,g.H*k);x.fill('evenodd');
   if(pdf&&!ex.full&&g.m>g.b){x.fillStyle='#fff';x.beginPath();x.rect(ox,oy,g.W*k,g.H*k);x.rect(ox+(g.m-g.b)*k,oy+(g.m-g.b)*k,(g.tw+2*g.b)*k,(g.th+2*g.b)*k);x.fill('evenodd')}
   x.save();x.strokeStyle='rgba(0,0,0,.45)';x.lineWidth=d;x.strokeRect(ox,oy,g.W*k,g.H*k);x.restore();
@@ -968,10 +1269,10 @@ function exPreview(){
  if(pdf){const R=Math.max(g.m,0)+14,ck=170/R;paint(cz,170,170,ck,3*ck,3*ck)}
  const pxmm=ex.dpi/25.4;let info;
  if(ex.fmt==='tile')info=`Dlaždice ${fmt(G.tw)} × ${fmt(G.th)} cm · ${Math.round(G.tw*ex.dpi/2.54)} × ${Math.round(G.th*ex.dpi/2.54)} px`;
- else if(ex.fmt==='png')info=`Arch ${fmt(ex.pw)} × ${fmt(ex.ph)} cm · ${Math.round(ex.pw*10*pxmm).toLocaleString('cs-CZ')} × ${Math.round(ex.ph*10*pxmm).toLocaleString('cs-CZ')} px · na arch ${ex.fit?G.tx+' × '+G.ty:fmt(ex.pw/G.tw)+' × '+fmt(ex.ph/G.th)} dlaždic`;
+   else if(ex.fmt==='png')info=`Arch ${fmt(ex.pw)} × ${fmt(ex.ph)} cm · ${Math.round(ex.pw*10*pxmm).toLocaleString('cs-CZ')} × ${Math.round(ex.ph*10*pxmm).toLocaleString('cs-CZ')} px · `+(apOn()?`aperiodický vzor ${APG.TYPES[doc.ap.type].name}, ${apGen().tiles.length.toLocaleString('cs-CZ')} dlaždic`:`na arch ${ex.fit?G.tx+' × '+G.ty:fmt(ex.pw/G.tw)+' × '+fmt(ex.ph/G.th)} dlaždic`);
  else{const aw=ex.full?g.W:g.tw+2*g.b,ah=ex.full?g.H:g.th+2*g.b;
-  info=`Stránka ${fmt(g.W)} × ${fmt(g.H)} mm · čistý formát ${fmt(g.tw)} × ${fmt(g.th)} mm · spadávka ${fmt(g.b)} mm<br>Obraz ${Math.round(aw*pxmm).toLocaleString('cs-CZ')} × ${Math.round(ah*pxmm).toLocaleString('cs-CZ')} px · dlaždice ${fmt(G.tw)} × ${fmt(G.th)} cm${ex.fit&&G.dev>.005?' (přizpůsobená)':''}`+'<br><span style="color:#1e88e5">Modrá čárkovaná = ořez (hotový rozměr).</span>'+(g.b>0?' <span style="color:#f28c28">Oranžová = konec spadávky.</span>':'')+' Čáry jsou jen v náhledu, v PDF nejsou.'+(g.b<=0?'<br><b style="color:var(--acc)">Spadávka je 0 mm – tiskárny obvykle chtějí 3 mm. Vzor sice pokračuje přes celou stránku, ale v PDF tiskárna spadávku neuvidí.</b>':'')}
- if(ex.fmt!=='tile'&&ex.fit&&G.dev>.1)info+=`<br><b style="color:var(--acc)">Dlaždice se musela změnit o ${Math.round(G.dev*100)} % (na ${fmt(G.tw)} × ${fmt(G.th)} cm), motivy se proto rozestoupí jinak. Zvažte jinou velikost dlaždice, nebo vypněte „I celé archy na sebe navazují“.</b>`;
+  info=`Stránka ${fmt(g.W)} × ${fmt(g.H)} mm · čistý formát ${fmt(g.tw)} × ${fmt(g.th)} mm · spadávka ${fmt(g.b)} mm<br>Obraz ${Math.round(aw*pxmm).toLocaleString('cs-CZ')} × ${Math.round(ah*pxmm).toLocaleString('cs-CZ')} px · ${apOn()?'aperiodický vzor '+APG.TYPES[doc.ap.type].name:`dlaždice ${fmt(G.tw)} × ${fmt(G.th)} cm${ex.fit&&G.dev>.005?' (přizpůsobená)':''}`}`+'<br><span style="color:#1e88e5">Modrá čárkovaná = ořez (hotový rozměr).</span>'+(g.b>0?' <span style="color:#f28c28">Oranžová = konec spadávky.</span>':'')+' Čáry jsou jen v náhledu, v PDF nejsou.'+(g.b<=0?'<br><b style="color:var(--acc)">Spadávka je 0 mm – tiskárny obvykle chtějí 3 mm. Vzor sice pokračuje přes celou stránku, ale v PDF tiskárna spadávku neuvidí.</b>':'')}
+ if(!apOn()&&ex.fmt!=='tile'&&ex.fit&&G.dev>.1)info+=`<br><b style="color:var(--acc)">Dlaždice se musela změnit o ${Math.round(G.dev*100)} % (na ${fmt(G.tw)} × ${fmt(G.th)} cm), motivy se proto rozestoupí jinak. Zvažte jinou velikost dlaždice, nebo vypněte „I celé archy na sebe navazují“.</b>`;
  if(pdf&&doc.bw)info+='<br>Černobíle: obraz v PDF bude v odstínech šedi (DeviceGray).';
  $('exInfo').innerHTML=info;
 }
@@ -980,13 +1281,19 @@ $('exPreset').addEventListener('change',e=>{if(!e.target.value)return;const[a,b]
 function openExport(){const ex=doc.ex;$('exPreset').value=[...$('exPreset').options].some(o=>o.value===ex.pw+'x'+ex.ph)?ex.pw+'x'+ex.ph:'';syncInspector();$('exStatus').textContent='';$('exProg').hidden=true;$('dlgExport').showModal();exPreview()}
 $('exGo').onclick=async()=>{
  const ex=doc.ex,G=exGeom(ex),base=curName.replace(/[\\/:*?"<>|]/g,'-'),st=$('exStatus'),pr=$('exProg'),bar=pr.querySelector('i');
- const name=ex.fmt==='pdf'?`${base} ${fmt(ex.pw)}x${fmt(ex.ph)}cm.pdf`:ex.fmt==='png'?`${base} ${fmt(ex.pw)}x${fmt(ex.ph)}cm.png`:`${base} dlaždice.png`;
+   if(apOn()&&ex.fmt==='tile')ex.fmt='png';
+  const name=ex.fmt==='pdf'?`${base} ${fmt(ex.pw)}x${fmt(ex.ph)}cm.pdf`:ex.fmt==='png'?`${base} ${fmt(ex.pw)}x${fmt(ex.ph)}cm.png`:`${base} dlaždice.png`;
  const outDir=await sub('Hotové papíry',true);
  $('exGo').disabled=true;st.className='grow';st.textContent='Připravuji…';pr.hidden=false;bar.style.width='0';await tick();
  try{let blob;
   if(ex.fmt==='pdf'){blob=await buildPdf(ex,f=>{bar.style.width=Math.round(f*100)+'%';st.textContent='Vytvářím PDF… '+Math.round(f*100)+' %'})}
-  else{const ppc=ex.dpi/2.54,t=renderTile(ppc,G.tw,G.th);let c=t;
-   if(ex.fmt==='png'){const W=ex.fit?t.width*G.tx:Math.round(ex.pw*ppc),H=ex.fit?t.height*G.ty:Math.round(ex.ph*ppc);
+     else if(apOn()){const ppc=ex.dpi/2.54,W=Math.round(ex.pw*ppc),H=Math.round(ex.ph*ppc);
+    if(W>32000||H>32000||W*H>2.5e8)throw new Error(`arch by měl ${W} × ${H} px, to prohlížeč neuloží – zvolte nižší DPI nebo PDF`);
+    const c=mk(W,H),x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,H);drawAp(x,ppc,0,0);
+    bar.style.width='60%';st.textContent='Ukládám PNG…';await tick();
+    blob=new Blob([pngDpi(new Uint8Array(await (await toBlob(c,'image/png')).arrayBuffer()),ex.dpi)],{type:'image/png'})}
+   else{const ppc=ex.dpi/2.54,t=renderTile(ppc,G.tw,G.th);let c=t;
+    if(ex.fmt==='png'){const W=ex.fit?t.width*G.tx:Math.round(ex.pw*ppc),H=ex.fit?t.height*G.ty:Math.round(ex.ph*ppc);
     if(W>32000||H>32000||W*H>2.5e8)throw new Error(`arch by měl ${W} × ${H} px, to prohlížeč neuloží – zvolte nižší DPI nebo PDF`);
     c=mk(W,H);const x=c.getContext('2d');x.fillStyle=x.createPattern(t,'repeat');x.fillRect(0,0,W,H)}
    bar.style.width='60%';st.textContent='Ukládám PNG…';await tick();
@@ -1004,9 +1311,10 @@ async function renderPrintPage(ex,dpi){
  let px=dpi/25.4;while(g.W*px*g.H*px>1.1e8)px*=.9;
  const W=Math.round(g.W*px),H=Math.round(g.H*px),c=mk(W,H),x=c.getContext('2d');
  x.fillStyle='#fff';x.fillRect(0,0,W,H);
- const t=renderTile(Math.min(px*10,6000/Math.max(G.tw,G.th)),G.tw,G.th,{white:true});
- const pat=x.createPattern(t,'repeat');pat.setTransform(new DOMMatrix().translate(g.m*px,g.m*px).scale(G.tw*10*px/t.width,G.th*10*px/t.height));x.fillStyle=pat;
- if(!pdf||ex.full)x.fillRect(0,0,W,H);else x.fillRect((g.m-g.b)*px,(g.m-g.b)*px,(g.tw+2*g.b)*px,(g.th+2*g.b)*px);
+   if(apOn()){x.save();if(pdf&&!ex.full){x.beginPath();x.rect((g.m-g.b)*px,(g.m-g.b)*px,(g.tw+2*g.b)*px,(g.th+2*g.b)*px);x.clip()}drawAp(x,px*10,g.m*px,g.m*px);x.restore()}else{
+  const t=renderTile(Math.min(px*10,6000/Math.max(G.tw,G.th)),G.tw,G.th,{white:true});
+  const pat=x.createPattern(t,'repeat');pat.setTransform(new DOMMatrix().translate(g.m*px,g.m*px).scale(G.tw*10*px/t.width,G.th*10*px/t.height));x.fillStyle=pat;
+  if(!pdf||ex.full)x.fillRect(0,0,W,H);else x.fillRect((g.m-g.b)*px,(g.m-g.b)*px,(g.tw+2*g.b)*px,(g.th+2*g.b)*px)}
  const M=marksOf(ex,g),lw=Math.max(1,.5*25.4/72*px);
  const st=()=>{for(const[a,b,cc,e]of M.lines){x.beginPath();x.moveTo(a*px,b*px);x.lineTo(cc*px,e*px);x.stroke()}for(const[a,b,r]of M.circles){x.beginPath();x.arc(a*px,b*px,r*px,0,Math.PI*2);x.stroke()}};
  if(ex.full){x.strokeStyle='#fff';x.lineWidth=lw*4;st()}x.strokeStyle='#000';x.lineWidth=lw;st();
@@ -1037,15 +1345,34 @@ document.querySelectorAll('dialog [data-close]').forEach(b=>b.onclick=()=>b.clos
 let rq=false,rqAll=false;
 function req(){if(!rq){rq=true;requestAnimationFrame(frame)}}
 function refreshAll(){rqAll=true;req()}
-function frame(){rq=false;if(rqAll){rqAll=false;layerList();syncInspector();status()}if(view==='edit')drawEditor();else drawSheet()}
-function status(){$('stTile').textContent=`Dlaždice ${fmt(doc.tw)} × ${fmt(doc.th)} cm · ${doc.layers.length} ${doc.layers.length===1?'vrstva':doc.layers.length>=2&&doc.layers.length<=4?'vrstvy':'vrstev'}`;
+function frame(){rq=false;if(rqAll){rqAll=false;layerList();syncInspector();status()}if(view==='edit'&&!apOn())drawEditor();else drawSheet()}
+function status(){$('stTile').textContent=`${apOn()?APG.TYPES[doc.ap.type].name+' · '+apGen().tiles.length.toLocaleString('cs-CZ')+' dlaždic na archu':'Dlaždice '+fmt(doc.tw)+' × '+fmt(doc.th)+' cm'} · ${doc.layers.length} ${doc.layers.length===1?'vrstva':doc.layers.length>=2&&doc.layers.length<=4?'vrstvy':'vrstev'}`;
  $('bUndo').disabled=hist.length<2;$('bRedo').disabled=!fut.length}
 
 /* =============== ovládání =============== */
-document.querySelectorAll('input[name=view]').forEach(r=>r.addEventListener('change',()=>{view=r.value;$('ed').hidden=view!=='edit';$('pv').hidden=view==='edit';$('dimL').hidden=view!=='edit';req()}));
+document.querySelectorAll('input[name=view]').forEach(r=>r.addEventListener('change',()=>{view=r.value;apUI();req()}));
+/* náhled archu: posun, přiblížení a štětec */
+const pv=$('pv');
+pv.addEventListener('pointerdown',e=>{const p=svPt(e);pv.setPointerCapture(e.pointerId);
+ if(apOn()&&BR.mode!=='off'&&e.button===0&&!space){SV.painted=false;drag={m:'paint'};apPaint(p);return}
+ drag={m:'svpan',sx:e.clientX,sy:e.clientY,px:SV.px||0,py:SV.py||0}});
+pv.addEventListener('pointermove',e=>{const p=svPt(e);
+ if(drag&&drag.m==='svpan'){SV.px=drag.px+e.clientX-drag.sx;SV.py=drag.py+e.clientY-drag.sy;pv.style.cursor='grabbing';req();return}
+ if(drag&&drag.m==='paint')apPaint(p);
+ if(apOn()&&BR.mode!=='off'&&!space){const i=apGen().hit(p.x,p.y);if(i!==SV.hover){SV.hover=i;req()}pv.style.cursor='crosshair'}
+ else{pv.style.cursor='grab';if(SV.hover>=0){SV.hover=-1;req()}}});
+pv.addEventListener('pointerup',()=>{const d0=drag;drag=null;if(d0&&d0.m==='paint'&&SV.painted){push();refreshAll()}pv.style.cursor=apOn()&&BR.mode!=='off'?'crosshair':'grab'});
+pv.addEventListener('pointerleave',()=>{if(SV.hover>=0){SV.hover=-1;req()}});
+pv.addEventListener('wheel',e=>{e.preventDefault();const r=pv.getBoundingClientRect();zoomAt(e.deltaY<0?1.15:1/1.15,{sx:e.clientX-r.left,sy:e.clientY-r.top})},{passive:false});
+$('apType').innerHTML='<option value="none">Opakující se dlaždice</option><optgroup label="Aperiodické – nikde se neopakují">'+Object.entries(APG.TYPES).map(([k,t])=>`<option value="${k}">${t.name}</option>`).join('')+'</optgroup>';
+document.querySelectorAll('input[name=brush]').forEach(r=>r.addEventListener('change',()=>{BR.mode=r.value;SV.hover=-1;msg(BR.mode==='off'?'Tažením posunete arch.':BR.mode==='erase'?'Klikněte na dlaždice, které chcete vrátit do původní podoby.':'Klikejte nebo táhněte po dlaždicích na archu.');req()}));
+$('brC').addEventListener('input',e=>{BR.c=e.target.value;if(BR.mode!=='color'){BR.mode='color';document.querySelector('input[name=brush][value=color]').checked=true}});
+$('brM').addEventListener('change',e=>{BR.m=e.target.value;if(BR.mode!=='motif'){BR.mode='motif';document.querySelector('input[name=brush][value=motif]').checked=true}});
+$('apSeed').onclick=()=>{doc.ap.seed=(Math.random()*1e6)|0;push();refreshAll()};
+$('apClear').onclick=()=>{const t=doc.ap.type+':';for(const k of Object.keys(doc.ap.pt))if(k.startsWith(t))delete doc.ap.pt[k];push();refreshAll();msg('Ruční úpravy dlaždic zrušeny. Vrátit jde přes Zpět (Ctrl+Z).')};
 for(const id of ['dim','grid'])$(id).addEventListener('change',req);
 $('zIn').onclick=()=>zoomAt(1.25);$('zOut').onclick=()=>zoomAt(1/1.25);
-$('zFit').onclick=()=>{if(view==='sheet')SV.zoom=1;else{E.zoom=1;E.px=E.py=0}req()};
+$('zFit').onclick=()=>{if(view==='sheet'||apOn()){SV.zoom=1;SV.px=SV.py=0}else{E.zoom=1;E.px=E.py=0}req()};
 $('bNew').onclick=newProject;$('bOpen').onclick=openDialog;$('bSave').onclick=()=>saveProject(false);$('bSaveAs').onclick=()=>saveProject(true);
 $('bUndo').onclick=undo;$('bRedo').onclick=redo;$('bExport').onclick=openExport;$('bHelp').onclick=()=>$('dlgHelp').showModal();
 document.addEventListener('keydown',e=>{
@@ -1082,7 +1409,7 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change',req);
 
 window.__onosetoSerialize=()=>serialize();
 /* =============== verze a aktualizace =============== */
-const APP_VER='1.2',VER_URL='https://raw.githubusercontent.com/Jedn0ta/OnosetoGiftPaper/main/aplikace/verze.json';
+const APP_VER='1.3',VER_URL='https://raw.githubusercontent.com/Jedn0ta/OnosetoGiftPaper/main/aplikace/verze.json';
 const verCmp=(a,b)=>{const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d}return 0};
 async function checkUpdate(show){
  const out=$('abUpd');if(show)out.textContent='Kontroluji, jestli je k dispozici novější verze…';

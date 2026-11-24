@@ -42,6 +42,22 @@ JAK NA TO
   spuštění se obnoví. Tato záloha nikdy nepřepisuje vaše soubory
   ve složce Projekty – ty se mění jen tlačítkem Uložit (Ctrl+S). Klávesové zkratky najdete v aplikaci pod Nápovědou (F1).
 
+APERIODICKÉ VZORY (nikde se neopakují)
+  V záložce „Dlaždice“ → „Skladba vzoru“ zvolte místo opakující se
+  dlaždice jeden z aperiodických vzorů: Klobouk (einstein, 2023),
+  Želva, Spectre, Penrose, Ammann–Beenker, dvanáctičetné květy,
+  sedmičetné nebo Větrník. Arch je pak pokrytý dlaždicemi tak, že se
+  žádná jeho část nikde neopakuje.
+  - Velikost, natočení, barva a šířka spár se nastavují v panelu vpravo.
+    Rozměr archu je stejný jako v Exportu.
+  - „Druhy dlaždic“: každý druh má vlastní barvu a obsah – prázdná
+    dlaždice, náhodný motiv z vašich vrstev, nebo jedna konkrétní vrstva.
+  - „Motivy v dlaždicích“: kolik dlaždic dostane motiv, jak velký,
+    jestli se natáčí s dlaždicí a jestli se ořízne jejím tvarem.
+  - „Jednotlivé dlaždice“: zvolte Barva nebo Obsah a klikejte (táhněte)
+    po dlaždicích na archu – změní se jen ty, na které kliknete.
+    Vrátit vrátí dlaždici do původní podoby.
+
 AKTUALIZACE
   V aplikaci klikněte na „O aplikaci“ – uvidíte verzi a jestli je
   k dispozici novější. Novou verzi stáhnete odkazem

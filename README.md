@@ -31,6 +31,7 @@ Při prvním uložení se aplikace zeptá na složku. Vyberte **přímo složku,
 - velikost dlaždice tažením okraje nebo rohu; volba, ze které strany jsou obrázky na okrajích dlaždice navrchu
 - opakování vrstvy v mřížce nebo náhodně rozsypané, obrys jako nálepka, stín, úpravy barev, odstranění jednobarevného pozadí
 - pozadí jednobarevné, proužky, puntíky, šachovnice; převod celého vzoru do černobílé
+- **aperiodické vzory, které se nikde neopakují:** klobouk (einstein, 2023), želva, Spectre, Penrose, Ammann–Beenker, dvanáctičetné a sedmičetné kosočtverce, větrník (pinwheel) – každý druh dlaždice má vlastní barvu a obsah (motiv z vrstev), jednotlivé dlaždice přebarvíte nebo změníte štětcem
 - export PDF pro tisk: spadávka (výchozí 3 mm), ořezové a pasovací značky v registrační barvě, popisek, TrimBox a BleedBox, černobíle v odstínech šedi
 - export PNG (celý arch nebo jedna dlaždice) s nastaveným DPI
 - tisk přímo z aplikace

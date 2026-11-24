@@ -1,5 +1,5 @@
 {
-  "verze": "1.2",
-  "datum": "2026-11-23",
-  "novinky": "změna velikosti dlaždice tažením a volba, ze které strany jsou obrázky na okrajích navrchu"
+  "verze": "1.3",
+  "datum": "2026-11-24",
+  "novinky": "aperiodické vzory, které se nikde neopakují (klobouk, Spectre, Penrose a další) s vlastní barvou a obsahem pro každý druh dlaždice a štětcem na jednotlivé dlaždice"
 }
